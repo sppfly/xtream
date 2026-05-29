@@ -11,6 +11,10 @@ add_executable(extream_tests
     core/types/int_test.cpp
     core/types/uint_test.cpp
     core/types/float_test.cpp
+    core/event_test.cpp
+    core/watermark_test.cpp
+    core/stream_schema_test.cpp
+    core/record_test.cpp
     util/log/logger_test.cpp
 )
 target_link_libraries(extream_tests PRIVATE extream_core GTest::gtest GTest::gtest_main)

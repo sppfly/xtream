@@ -45,7 +45,7 @@ cd build && ctest --output-on-failure
 
 ---
 
-## Phase 2: Core Data Model
+## Phase 2: Core Data Model ✅ DONE
 
 **Depends on**: Phase 1
 
@@ -54,23 +54,24 @@ cd build && ctest --output-on-failure
 | Task | Files |
 |------|-------|
 | `Event<T>` | `src/core/event.h` — payload + timestamp + metadata (opaque map) |
-| `Watermark` | `src/core/watermark.h` — timestamp + source-id, comparison operators |
-| `StreamSchema` | `src/core/stream_schema.h` — ordered list of (field-name, type-id) |
-| `Record` | `src/core/record.h` — runtime-typed row: list of variant-like values + schema ref |
+| `Watermark` | `src/core/watermark.h` — timestamp + source-id, comparison, min_timestamp |
+| `StreamSchema` | `src/core/stream_schema.h` — ordered list of (field-name, type-id), compatibility check |
+| `Record` | `src/core/record.h` — `FieldValue` (discriminated union) + `Record` (schema-backed row) |
 
-### Design Constraints
+### Design Decisions Made
 
-- `Event<T>` is the unit of data flow: every operator consumes/produces events
-- `Watermark` is a special stream element (not a regular event) that flows through the DAG
-- `Record` stores arbitrary typed fields for operators that don't know the schema at compile time
-- Schemas are validated when edges are established (Phase 3)
+- `Event<T>` payload stored by value; `set_metadata()` / `metadata()` for key-value attachments
+- `Watermark::min_timestamp()` utility for taking min across multiple input watermarks
+- `TypeKind` enum uses `uint8_t` underlying type (can't use `u8` — enum requires integral type)
+- `FieldValue` is a simple tagged union: stores scalar in `int64_t`/`double`, strings in `std::string`
+- `Record` holds a `shared_ptr<const StreamSchema>`; fields accessed by index or name
 
-### Tests
+### Test Coverage (32 new tests)
 
-- Event copy/move, timestamp ordering
-- Watermark comparison and merging (min of all inputs = aligned watermark)
-- Schema matching / mismatch detection
-- Record field access by name, type-safe getter
+- Event: construction, copy/move, metadata CRUD, timestamp ordering, different payload types
+- Watermark: equality, ordering (by timestamp then source_id), min_timestamp, copy
+- StreamSchema: empty/compatible/incompatible by count/name/type, field_index lookup
+- Record: field access by index and name, all type kinds (i32/u32/u64/f32/f64/string)
 
 ---
 
