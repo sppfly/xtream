@@ -16,6 +16,7 @@ add_executable(extream_tests
     core/stream_schema_test.cpp
     core/record_test.cpp
     core/id_test.cpp
+    graph/dataflow_graph_test.cpp
     util/log/logger_test.cpp
 )
 target_link_libraries(extream_tests PRIVATE extream_core GTest::gtest GTest::gtest_main)

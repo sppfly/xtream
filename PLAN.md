@@ -75,7 +75,7 @@ cd build && ctest --output-on-failure
 
 ---
 
-## Phase 3: Dataflow Graph (DAG)
+## Phase 3: Dataflow Graph (DAG) ✅ DONE
 
 **Depends on**: Phase 2
 
@@ -83,24 +83,24 @@ cd build && ctest --output-on-failure
 
 | Task | Files |
 |------|-------|
-| `OperatorDescriptor` | `src/graph/operator_descriptor.h` — name, type, parallelism, input/output arity |
-| `StreamEdge` | `src/graph/stream_edge.h` — source operator-id, target operator-id, partitioning (forward/keyed/broadcast) |
-| `DataflowGraph` | `src/graph/dataflow_graph.h` — DAG builder, cycle detection, schema compatibility validation |
+| `OperatorDescriptor` | `src/graph/operator_descriptor.h` — id, name, type, parallelism |
+| `StreamEdge` + `EdgePartition` | `src/graph/stream_edge.h` — source/target operator id, Forward/Keyed/Broadcast |
+| `DataflowGraph` (immutable) | `src/graph/dataflow_graph.h` — query operators/edges, `sources_of` / `targets_of` |
+| `DataflowGraphBuilder` | `src/graph/dataflow_graph_builder.h` — fluent builder, `validate()` + `build()` |
 
-### Design Constraints
+### Design Decisions Made
 
-- Graph is immutable after construction (build once, validate, submit)
-- Cycle detection uses DFS-based topological ordering
-- Schema validation: output schema of upstream must match input schema of downstream for each edge
-- Edge partitioning modes: `Forward` (same task), `Keyed` (hash-routed), `Broadcast` (all downstream)
+- **Builder pattern**: `DataflowGraphBuilder` returns `OperatorId` / `EdgeId` (value types, no dangling reference risk on vector realloc). `build()` validates then produces immutable `DataflowGraph`.
+- **Cycle detection**: Kahn's algorithm (in-degree based) — O(V+E), clear error message on cycle.
+- **Schema validation deferred to Phase 4**: operators don't carry schema yet, so schema compat is a placeholder for now.
+- **`OperatorTag`/`EdgeTag`** defined alongside descriptors, providing separate `OperatorId`/`EdgeId` types via `Id<Tag>`.
 
-### Tests
+### Test Coverage (16 new tests)
 
-- Valid DAG passes validation
-- Cycle rejection
-- Schema mismatch rejection
-- Edge arity mismatch rejection
-- Multiple inputs to one operator (union), multiple outputs from one operator (fan-out)
+- Build/validate: empty graph rejected, single op ok
+- Topology: linear, fan-out, fan-in
+- Cycles: 3-node cycle, self-loop, 2-node cycle — all rejected
+- Query: find by id, find by name, not found = nullptr, `sources_of`/`targets_of`
 
 ---
 
