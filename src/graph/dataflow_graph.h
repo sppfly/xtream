@@ -1,7 +1,9 @@
 #pragma once
 
 #include <cassert>
+#include <deque>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 #include "graph/operator_descriptor.h"
@@ -62,6 +64,86 @@ public:
             }
         }
         return result;
+    }
+
+    std::vector<OperatorId> roots() const {
+        std::vector<OperatorId> result;
+        for (const auto& op : operators_) {
+            if (in_degree_of(op.id()) == 0) {
+                result.push_back(op.id());
+            }
+        }
+        return result;
+    }
+
+    std::vector<OperatorId> leaves() const {
+        std::vector<OperatorId> result;
+        for (const auto& op : operators_) {
+            if (out_degree_of(op.id()) == 0) {
+                result.push_back(op.id());
+            }
+        }
+        return result;
+    }
+
+    size_t in_degree_of(OperatorId id) const {
+        size_t count = 0;
+        for (const auto& e : edges_) {
+            if (e.target() == id) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    size_t out_degree_of(OperatorId id) const {
+        size_t count = 0;
+        for (const auto& e : edges_) {
+            if (e.source() == id) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    std::vector<OperatorId> topological_order() const {
+        std::unordered_map<OperatorId, std::vector<OperatorId>> adjacency;
+        for (const auto& op : operators_) {
+            adjacency[op.id()] = {};
+        }
+        for (const auto& e : edges_) {
+            adjacency[e.source()].push_back(e.target());
+        }
+
+        std::unordered_map<OperatorId, size_t> in_degree;
+        for (const auto& op : operators_) {
+            in_degree[op.id()] = 0;
+        }
+        for (const auto& e : edges_) {
+            in_degree[e.target()]++;
+        }
+
+        std::deque<OperatorId> queue;
+        for (const auto& [id, deg] : in_degree) {
+            if (deg == 0) {
+                queue.push_back(id);
+            }
+        }
+
+        std::vector<OperatorId> order;
+        while (!queue.empty()) {
+            auto id = queue.front();
+            queue.pop_front();
+            order.push_back(id);
+            for (const auto& neighbor : adjacency[id]) {
+                in_degree[neighbor]--;
+                if (in_degree[neighbor] == 0) {
+                    queue.push_back(neighbor);
+                }
+            }
+        }
+
+        return order;
     }
 
 private:

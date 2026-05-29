@@ -197,5 +197,114 @@ TEST(DataflowGraphTest, NoEdgesProducesEmptySourceTargets) {
     EXPECT_TRUE(graph.targets_of(graph.operators()[0].id()).empty());
 }
 
+TEST(DataflowGraphTest, Roots) {
+    DataflowGraphBuilder builder;
+    auto src = builder.add_operator("src", "Source", 1);
+    auto map = builder.add_operator("map", "Map", 1);
+    auto sink = builder.add_operator("sink", "Sink", 1);
+
+    builder.add_edge(src, map, EdgePartition::Forward);
+    builder.add_edge(map, sink, EdgePartition::Forward);
+
+    auto graph = builder.build();
+    auto roots = graph.roots();
+    ASSERT_EQ(roots.size(), 1u);
+    EXPECT_EQ(roots[0], src);
+}
+
+TEST(DataflowGraphTest, MultipleRoots) {
+    DataflowGraphBuilder builder;
+    auto s1 = builder.add_operator("s1", "Source", 1);
+    auto s2 = builder.add_operator("s2", "Source", 1);
+    auto join = builder.add_operator("join", "Join", 1);
+
+    builder.add_edge(s1, join, EdgePartition::Forward);
+    builder.add_edge(s2, join, EdgePartition::Forward);
+
+    auto graph = builder.build();
+    auto roots = graph.roots();
+    ASSERT_EQ(roots.size(), 2u);
+}
+
+TEST(DataflowGraphTest, Leaves) {
+    DataflowGraphBuilder builder;
+    auto src = builder.add_operator("src", "Source", 1);
+    auto op1 = builder.add_operator("op1", "Map", 1);
+    auto op2 = builder.add_operator("op2", "Map", 1);
+
+    builder.add_edge(src, op1, EdgePartition::Forward);
+    builder.add_edge(src, op2, EdgePartition::Forward);
+
+    auto graph = builder.build();
+    auto leaves = graph.leaves();
+    ASSERT_EQ(leaves.size(), 2u);
+    EXPECT_EQ(leaves[0], op1);
+    EXPECT_EQ(leaves[1], op2);
+}
+
+TEST(DataflowGraphTest, InOutDegree) {
+    DataflowGraphBuilder builder;
+    auto src = builder.add_operator("src", "Source", 1);
+    auto map = builder.add_operator("map", "Map", 1);
+    auto sink = builder.add_operator("sink", "Sink", 1);
+
+    builder.add_edge(src, map, EdgePartition::Forward);
+    builder.add_edge(map, sink, EdgePartition::Forward);
+
+    auto graph = builder.build();
+    EXPECT_EQ(graph.in_degree_of(src), 0u);
+    EXPECT_EQ(graph.out_degree_of(src), 1u);
+    EXPECT_EQ(graph.in_degree_of(map), 1u);
+    EXPECT_EQ(graph.out_degree_of(map), 1u);
+    EXPECT_EQ(graph.in_degree_of(sink), 1u);
+    EXPECT_EQ(graph.out_degree_of(sink), 0u);
+}
+
+TEST(DataflowGraphTest, TopologicalOrderSimple) {
+    DataflowGraphBuilder builder;
+    auto src = builder.add_operator("src", "Source", 1);
+    auto map = builder.add_operator("map", "Map", 1);
+    auto sink = builder.add_operator("sink", "Sink", 1);
+
+    builder.add_edge(src, map, EdgePartition::Forward);
+    builder.add_edge(map, sink, EdgePartition::Forward);
+
+    auto graph = builder.build();
+    auto order = graph.topological_order();
+    ASSERT_EQ(order.size(), 3u);
+    EXPECT_EQ(order[0], src);
+    EXPECT_EQ(order[1], map);
+    EXPECT_EQ(order[2], sink);
+}
+
+TEST(DataflowGraphTest, TopologicalOrderDiamond) {
+    DataflowGraphBuilder builder;
+    auto src = builder.add_operator("src", "Source", 1);
+    auto op1 = builder.add_operator("op1", "Map", 1);
+    auto op2 = builder.add_operator("op2", "Map", 1);
+    auto sink = builder.add_operator("sink", "Sink", 1);
+
+    builder.add_edge(src, op1, EdgePartition::Forward);
+    builder.add_edge(src, op2, EdgePartition::Forward);
+    builder.add_edge(op1, sink, EdgePartition::Forward);
+    builder.add_edge(op2, sink, EdgePartition::Forward);
+
+    auto graph = builder.build();
+    auto order = graph.topological_order();
+    ASSERT_EQ(order.size(), 4u);
+
+    EXPECT_EQ(order[0], src);
+    EXPECT_EQ(order[3], sink);
+
+    auto src_pos = size_t{0};
+    auto sink_pos = order.size() - 1;
+    for (size_t i = 0; i < order.size(); ++i) {
+        if (order[i] == op1 || order[i] == op2) {
+            EXPECT_GT(i, src_pos);
+            EXPECT_LT(i, sink_pos);
+        }
+    }
+}
+
 }  // namespace
 }  // namespace extream
