@@ -104,6 +104,7 @@ All placement algorithms must implement a unified placement interface.
   | Compile-time code injection | CRTP / templates |
   | Header guards | `#pragma once` |
   | Platform conditionals | macro (no replacement — but project is Linux-only, so rarely needed) |
+- **No raw pointers.** Use `const T&` for observation, `T`/`std::move` for ownership. A raw pointer cannot express "borrowed, don't delete me" — the compiler won't stop misuse. References encode this in the type system.
 - **Keep it simple.** No over-engineering. Prefer straightforward solutions.
 - Do NOT add comments unless asked.
 
