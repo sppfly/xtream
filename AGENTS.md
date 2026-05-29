@@ -107,6 +107,7 @@ All placement algorithms must implement a unified placement interface.
 - **No raw pointers.** Use `const T&` for observation, `T`/`std::move` for ownership. A raw pointer cannot express "borrowed, don't delete me" — the compiler won't stop misuse. References encode this in the type system.
 - **Keep it simple.** No over-engineering. Prefer straightforward solutions.
 - Do NOT add comments unless asked.
+- **Do NOT modify code unless explicitly asked.** When proposing changes, describe them first and wait for the user to say "go ahead".
 
 ### Key Technical Decisions
 
