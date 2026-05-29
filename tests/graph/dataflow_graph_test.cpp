@@ -60,6 +60,8 @@ TEST(DataflowGraphTest, FanOutDAG) {
     auto graph = builder.build();
     auto targets = graph.targets_of(src);
     EXPECT_EQ(targets.size(), 2u);
+    EXPECT_EQ(graph.op(targets[0]).name(), "op1");
+    EXPECT_EQ(graph.op(targets[1]).name(), "op2");
 }
 
 TEST(DataflowGraphTest, FanInDAG) {
@@ -115,36 +117,25 @@ TEST(DataflowGraphTest, TwoNodeCycle) {
     EXPECT_FALSE(result.is_ok());
 }
 
-TEST(DataflowGraphTest, FindOperatorById) {
+TEST(DataflowGraphTest, OpById) {
     DataflowGraphBuilder builder;
     auto op_id = builder.add_operator("myop", "Map", 3);
     auto graph = builder.build();
 
-    auto found = graph.find_operator(op_id);
-    ASSERT_NE(found, nullptr);
-    EXPECT_EQ(found->id(), op_id);
-    EXPECT_EQ(found->name(), "myop");
-    EXPECT_EQ(found->parallelism(), 3u);
+    const auto& op = graph.op(op_id);
+    EXPECT_EQ(op.id(), op_id);
+    EXPECT_EQ(op.name(), "myop");
+    EXPECT_EQ(op.parallelism(), 3u);
 }
 
-TEST(DataflowGraphTest, FindOperatorByName) {
+TEST(DataflowGraphTest, OpByName) {
     DataflowGraphBuilder builder;
     builder.add_operator("alpha", "Op", 1);
     builder.add_operator("beta", "Op", 1);
     auto graph = builder.build();
 
-    EXPECT_NE(graph.find_operator("alpha"), nullptr);
-    EXPECT_NE(graph.find_operator("beta"), nullptr);
-    EXPECT_EQ(graph.find_operator("gamma"), nullptr);
-}
-
-TEST(DataflowGraphTest, FindOperatorNotFound) {
-    DataflowGraphBuilder builder;
-    builder.add_operator("a", "Op", 1);
-    auto graph = builder.build();
-
-    OperatorId nonexistent(u64(999));
-    EXPECT_EQ(graph.find_operator(nonexistent), nullptr);
+    EXPECT_EQ(graph.op("alpha").name(), "alpha");
+    EXPECT_EQ(graph.op("beta").name(), "beta");
 }
 
 TEST(DataflowGraphTest, EdgePartitionModes) {
@@ -164,7 +155,7 @@ TEST(DataflowGraphTest, EdgePartitionModes) {
     EXPECT_EQ(graph.edges()[2].partition(), EdgePartition::Broadcast);
 }
 
-TEST(DataflowGraphTest, SourcesOfReturnsCorrectOperators) {
+TEST(DataflowGraphTest, SourcesOf) {
     DataflowGraphBuilder builder;
     auto s1 = builder.add_operator("s1", "Source", 1);
     auto s2 = builder.add_operator("s2", "Source", 1);
@@ -176,9 +167,11 @@ TEST(DataflowGraphTest, SourcesOfReturnsCorrectOperators) {
     auto graph = builder.build();
     auto sources = graph.sources_of(t);
     ASSERT_EQ(sources.size(), 2u);
+    EXPECT_EQ(sources[0], s1);
+    EXPECT_EQ(sources[1], s2);
 }
 
-TEST(DataflowGraphTest, TargetsOfReturnsCorrectOperators) {
+TEST(DataflowGraphTest, TargetsOf) {
     DataflowGraphBuilder builder;
     auto s = builder.add_operator("s", "Source", 1);
     auto t1 = builder.add_operator("t1", "Sink", 1);
@@ -190,6 +183,8 @@ TEST(DataflowGraphTest, TargetsOfReturnsCorrectOperators) {
     auto graph = builder.build();
     auto targets = graph.targets_of(s);
     ASSERT_EQ(targets.size(), 2u);
+    EXPECT_EQ(targets[0], t1);
+    EXPECT_EQ(targets[1], t2);
 }
 
 TEST(DataflowGraphTest, NoEdgesProducesEmptySourceTargets) {
@@ -198,11 +193,8 @@ TEST(DataflowGraphTest, NoEdgesProducesEmptySourceTargets) {
     builder.add_operator("b", "Op", 1);
     auto graph = builder.build();
 
-    auto sources = graph.sources_of(graph.operators()[1].id());
-    EXPECT_TRUE(sources.empty());
-
-    auto targets = graph.targets_of(graph.operators()[0].id());
-    EXPECT_TRUE(targets.empty());
+    EXPECT_TRUE(graph.sources_of(graph.operators()[1].id()).empty());
+    EXPECT_TRUE(graph.targets_of(graph.operators()[0].id()).empty());
 }
 
 }  // namespace

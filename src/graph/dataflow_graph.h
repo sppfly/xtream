@@ -1,6 +1,6 @@
 #pragma once
 
-#include <optional>
+#include <cassert>
 #include <string_view>
 #include <vector>
 
@@ -17,54 +17,48 @@ public:
     const std::vector<OperatorDescriptor>& operators() const { return operators_; }
     const std::vector<StreamEdge>& edges() const { return edges_; }
 
-    const OperatorDescriptor* find_operator(OperatorId id) const {
+    const OperatorDescriptor& op(OperatorId id) const {
         for (const auto& op : operators_) {
             if (op.id() == id) {
-                return &op;
+                return op;
             }
         }
-        return nullptr;
+        assert(false);
     }
 
-    const OperatorDescriptor* find_operator(std::string_view name) const {
+    const OperatorDescriptor& op(std::string_view name) const {
         for (const auto& op : operators_) {
             if (op.name() == name) {
-                return &op;
+                return op;
             }
         }
-        return nullptr;
+        assert(false);
     }
 
-    const StreamEdge* find_edge(EdgeId id) const {
-        for (const auto& edge : edges_) {
-            if (edge.id() == id) {
-                return &edge;
+    const StreamEdge& edge(EdgeId id) const {
+        for (const auto& e : edges_) {
+            if (e.id() == id) {
+                return e;
             }
         }
-        return nullptr;
+        assert(false);
     }
 
-    std::vector<const OperatorDescriptor*> sources_of(OperatorId target) const {
-        std::vector<const OperatorDescriptor*> result;
-        for (const auto& edge : edges_) {
-            if (edge.target() == target) {
-                auto* op = find_operator(edge.source());
-                if (op) {
-                    result.push_back(op);
-                }
+    std::vector<OperatorId> sources_of(OperatorId target) const {
+        std::vector<OperatorId> result;
+        for (const auto& e : edges_) {
+            if (e.target() == target) {
+                result.push_back(e.source());
             }
         }
         return result;
     }
 
-    std::vector<const OperatorDescriptor*> targets_of(OperatorId source) const {
-        std::vector<const OperatorDescriptor*> result;
-        for (const auto& edge : edges_) {
-            if (edge.source() == source) {
-                auto* op = find_operator(edge.target());
-                if (op) {
-                    result.push_back(op);
-                }
+    std::vector<OperatorId> targets_of(OperatorId source) const {
+        std::vector<OperatorId> result;
+        for (const auto& e : edges_) {
+            if (e.source() == source) {
+                result.push_back(e.target());
             }
         }
         return result;
