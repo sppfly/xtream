@@ -205,41 +205,9 @@ Source routes events round-robin to N Map chains. Sink merges input from all cha
 
 ---
 
-## Phase 6: Watermark Propagation + Trigger Framework
+## Phase 6: Engine A — Fixed-Slot (Single-Node)
 
 **Depends on**: Phase 5
-
-### Deliverables
-
-| Task | Files |
-|------|-------|
-| `Trigger` abstract class | `src/runtime/trigger.h` — `onEvent()`, `onWatermark()`, returns `TriggerResult` |
-| `TriggerResult` | `src/runtime/trigger_result.h` — `CONTINUE`, `FIRE`, `FIRE_AND_PURGE` |
-| `EventTimeTrigger` | `src/runtime/triggers/event_time_trigger.h` — fires when watermark passes window end |
-| `CountTrigger` | `src/runtime/triggers/count_trigger.h` — every N events |
-| `WatermarkPropagator` | `src/runtime/watermark_propagator.h` — tracks min watermark across inputs |
-
-### Design Constraints
-
-- Watermark is a special stream element that flows through the DAG like data
-- `WatermarkPropagator` runs per operator instance:
-  - Single-input: pass-through
-  - Multi-input (join): take min of all input watermarks
-- Watermark is broadcast to all instances of a downstream operator
-- `TriggerResult::FIRE` = emit now, keep state; `FIRE_AND_PURGE` = emit and clear
-
-### Tests
-
-- Watermark flows through pipeline end-to-end
-- Watermark cannot go backwards per input
-- CountTrigger fires exactly every N events
-- EventTimeTrigger fires when watermark ≥ window end
-
----
-
-## Phase 7: Engine A — Fixed-Slot (Single-Node)
-
-**Depends on**: Phase 5, Phase 6
 
 ### Deliverables
 
@@ -279,9 +247,9 @@ Source routes events round-robin to N Map chains. Sink merges input from all cha
 
 ---
 
-## Phase 8: Engine B — Task-Stealing (Single-Node)
+## Phase 7: Engine B — Task-Stealing (Single-Node)
 
-**Depends on**: Phase 7
+**Depends on**: Phase 6
 
 ### Deliverables
 
@@ -313,11 +281,12 @@ Each partition has a lock/token. An executor must acquire it before processing t
 
 ---
 
-## Phase 9: Advanced Operators
+## Phase 8: Advanced Operators
 
-**Depends on**: Phase 6
+**Depends on**: Phase 5
 
-Following the same two-layer split as Phase 4.
+Following the same two-layer split as Phase 4. Operators defined here; watermark/trigger driving
+mechanism deferred to Phase 9.
 
 ### Logical Layer (User-Facing, Pure Description)
 
@@ -342,22 +311,55 @@ Following the same two-layer split as Phase 4.
 ### Design Constraints
 
 - `KeyBy` changes edge partitioning to `Keyed` — affects how the engine routes events
-- Window operators hold state in-memory via `OperatorContext::get_global_state()`; triggers from Phase 6
-- Windows fire when the watermark passes `window_end + allowed_lateness`
-- Join uses `WatermarkPropagator` to align watermarks from both sides
+- Window operators hold state in-memory; trigger/watermark driving added in Phase 9
+- `JoinPhysicalOperator` is a non-cascadable operator (two-input, stateful)
 
 ### Tests
 
-- Tumbling window aggregates events into correct windows
+- Tumbling window buffers events correctly
 - Sliding window with slide < size produces overlapping windows
 - Join pairs events with matching keys within time window
-- Late events (watermark already passed) are dropped
+- Late events are handled once watermark is integrated (Phase 9)
+
+---
+
+## Phase 9: Watermark Propagation + Trigger Framework
+
+**Depends on**: Phase 8
+
+### Deliverables
+
+| Task | Files |
+|------|-------|
+| `Trigger` abstract class | `src/runtime/trigger.h` — `onEvent()`, `onWatermark()`, returns `TriggerResult` |
+| `TriggerResult` | `src/runtime/trigger_result.h` — `CONTINUE`, `FIRE`, `FIRE_AND_PURGE` |
+| `EventTimeTrigger` | `src/runtime/triggers/event_time_trigger.h` — fires when watermark passes window end |
+| `CountTrigger` | `src/runtime/triggers/count_trigger.h` — every N events |
+| `WatermarkPropagator` | `src/runtime/watermark_propagator.h` — tracks min watermark across inputs |
+| Wire triggers into window operators | Update TumblingWindow/SlidingWindow/Join to use triggers |
+
+### Design Constraints
+
+- Watermark is a special stream element that flows through the DAG like data
+- `WatermarkPropagator` runs per operator instance:
+  - Single-input: pass-through
+  - Multi-input (join): take min of all input watermarks
+- Watermark is broadcast to all instances of a downstream operator
+- `TriggerResult::FIRE` = emit now, keep state; `FIRE_AND_PURGE` = emit and clear
+
+### Tests
+
+- Watermark flows through pipeline end-to-end
+- Watermark cannot go backwards per input
+- CountTrigger fires exactly every N events
+- EventTimeTrigger fires when watermark ≥ window end
+- Window + Trigger integration: events emitted when watermark triggers window close
 
 ---
 
 ## Phase 10: Placement Algorithms
 
-**Depends on**: Phase 7, Phase 8
+**Depends on**: Phase 6, Phase 7
 
 ### Deliverables
 
@@ -387,7 +389,7 @@ Following the same two-layer split as Phase 4.
 
 ## Phase 11: Complex Topology Validation
 
-**Depends on**: Phase 9
+**Depends on**: Phase 8
 
 ### Deliverables
 
@@ -416,4 +418,3 @@ Following the same two-layer split as Phase 4.
 ## Deferred: Distributed Runtime
 
 Not part of current plan. Will be designed after single-node architecture is fully validated.
-
