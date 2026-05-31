@@ -9,8 +9,8 @@
 #include <unordered_set>
 
 #include "graph/dataflow_graph.h"
-#include "graph/operator_descriptor.h"
 #include "graph/stream_edge.h"
+#include "operators/logical/logical_operator.h"
 
 namespace extream {
 
@@ -36,9 +36,10 @@ class DataflowGraphBuilder {
 public:
     DataflowGraphBuilder() : next_operator_id_(0), next_edge_id_(0) {}
 
-    OperatorId add_operator(std::string name, std::string type, size_t parallelism) {
+    template <typename T>
+    OperatorId add_operator(std::string name, u64 parallelism, T impl) {
         auto id = OperatorId(u64(next_operator_id_++));
-        operators_.emplace_back(id, std::move(name), std::move(type), parallelism);
+        operators_.emplace_back(id, std::move(name), parallelism, std::move(impl));
         return id;
     }
 
@@ -132,7 +133,7 @@ private:
 
     uint64_t next_operator_id_;
     uint64_t next_edge_id_;
-    std::vector<OperatorDescriptor> operators_;
+    std::vector<LogicalOperator> operators_;
     std::vector<StreamEdge> edges_;
 };
 

@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 
 #include "graph/dataflow_graph_builder.h"
+#include "operators/logical/sink_logical_operator.h"
+#include "operators/logical/source_logical_operator.h"
 
 namespace extream {
 namespace {
@@ -13,15 +15,15 @@ TEST(DataflowGraphTest, EmptyGraphFailsValidation) {
 
 TEST(DataflowGraphTest, SingleOperatorPassesValidation) {
     DataflowGraphBuilder builder;
-    builder.add_operator("src", "Source", 1);
+    builder.add_operator("src", u64(1), SourceLogicalOperatorImpl{});
     auto result = builder.validate();
     EXPECT_TRUE(result.is_ok());
 }
 
 TEST(DataflowGraphTest, BuildProducesGraph) {
     DataflowGraphBuilder builder;
-    builder.add_operator("src", "Source", 1);
-    builder.add_operator("sink", "Sink", 1);
+    builder.add_operator("src", u64(1), SourceLogicalOperatorImpl{});
+    builder.add_operator("sink", u64(1), SinkLogicalOperatorImpl{});
 
     auto graph = builder.build();
     EXPECT_EQ(graph.operators().size(), 2u);
@@ -30,9 +32,9 @@ TEST(DataflowGraphTest, BuildProducesGraph) {
 
 TEST(DataflowGraphTest, SimpleLinearDAG) {
     DataflowGraphBuilder builder;
-    auto src = builder.add_operator("src", "Source", 1);
-    auto map = builder.add_operator("map", "Map", 2);
-    auto sink = builder.add_operator("sink", "Sink", 1);
+    auto src = builder.add_operator("src", u64(1), SourceLogicalOperatorImpl{});
+    auto map = builder.add_operator("map", u64(2), SourceLogicalOperatorImpl{});
+    auto sink = builder.add_operator("sink", u64(1), SinkLogicalOperatorImpl{});
 
     builder.add_edge(src, map, EdgePartition::Forward);
     builder.add_edge(map, sink, EdgePartition::Forward);
@@ -47,9 +49,9 @@ TEST(DataflowGraphTest, SimpleLinearDAG) {
 
 TEST(DataflowGraphTest, FanOutDAG) {
     DataflowGraphBuilder builder;
-    auto src = builder.add_operator("src", "Source", 1);
-    auto op1 = builder.add_operator("op1", "Map", 1);
-    auto op2 = builder.add_operator("op2", "Map", 1);
+    auto src = builder.add_operator("src", u64(1), SourceLogicalOperatorImpl{});
+    auto op1 = builder.add_operator("op1", u64(1), SourceLogicalOperatorImpl{});
+    auto op2 = builder.add_operator("op2", u64(1), SourceLogicalOperatorImpl{});
 
     builder.add_edge(src, op1, EdgePartition::Forward);
     builder.add_edge(src, op2, EdgePartition::Forward);
@@ -66,9 +68,9 @@ TEST(DataflowGraphTest, FanOutDAG) {
 
 TEST(DataflowGraphTest, FanInDAG) {
     DataflowGraphBuilder builder;
-    auto src1 = builder.add_operator("src1", "Source", 1);
-    auto src2 = builder.add_operator("src2", "Source", 1);
-    auto join = builder.add_operator("join", "Join", 2);
+    auto src1 = builder.add_operator("src1", u64(1), SourceLogicalOperatorImpl{});
+    auto src2 = builder.add_operator("src2", u64(1), SourceLogicalOperatorImpl{});
+    auto join = builder.add_operator("join", u64(2), SourceLogicalOperatorImpl{});
 
     builder.add_edge(src1, join, EdgePartition::Forward);
     builder.add_edge(src2, join, EdgePartition::Forward);
@@ -83,9 +85,9 @@ TEST(DataflowGraphTest, FanInDAG) {
 
 TEST(DataflowGraphTest, CycleDetected) {
     DataflowGraphBuilder builder;
-    auto a = builder.add_operator("a", "Op", 1);
-    auto b = builder.add_operator("b", "Op", 1);
-    auto c = builder.add_operator("c", "Op", 1);
+    auto a = builder.add_operator("a", u64(1), SourceLogicalOperatorImpl{});
+    auto b = builder.add_operator("b", u64(1), SourceLogicalOperatorImpl{});
+    auto c = builder.add_operator("c", u64(1), SourceLogicalOperatorImpl{});
 
     builder.add_edge(a, b, EdgePartition::Forward);
     builder.add_edge(b, c, EdgePartition::Forward);
@@ -98,7 +100,7 @@ TEST(DataflowGraphTest, CycleDetected) {
 
 TEST(DataflowGraphTest, SelfLoopDetected) {
     DataflowGraphBuilder builder;
-    auto a = builder.add_operator("a", "Op", 1);
+    auto a = builder.add_operator("a", u64(1), SourceLogicalOperatorImpl{});
     builder.add_edge(a, a, EdgePartition::Forward);
 
     auto result = builder.validate();
@@ -107,8 +109,8 @@ TEST(DataflowGraphTest, SelfLoopDetected) {
 
 TEST(DataflowGraphTest, TwoNodeCycle) {
     DataflowGraphBuilder builder;
-    auto a = builder.add_operator("a", "Op", 1);
-    auto b = builder.add_operator("b", "Op", 1);
+    auto a = builder.add_operator("a", u64(1), SourceLogicalOperatorImpl{});
+    auto b = builder.add_operator("b", u64(1), SourceLogicalOperatorImpl{});
 
     builder.add_edge(a, b, EdgePartition::Forward);
     builder.add_edge(b, a, EdgePartition::Forward);
@@ -119,19 +121,19 @@ TEST(DataflowGraphTest, TwoNodeCycle) {
 
 TEST(DataflowGraphTest, OpById) {
     DataflowGraphBuilder builder;
-    auto op_id = builder.add_operator("myop", "Map", 3);
+    auto op_id = builder.add_operator("myop", u64(3), SourceLogicalOperatorImpl{});
     auto graph = builder.build();
 
     const auto& op = graph.op(op_id);
     EXPECT_EQ(op.id(), op_id);
     EXPECT_EQ(op.name(), "myop");
-    EXPECT_EQ(op.parallelism(), 3u);
+    EXPECT_EQ(op.parallelism(), u64(3));
 }
 
 TEST(DataflowGraphTest, OpByName) {
     DataflowGraphBuilder builder;
-    builder.add_operator("alpha", "Op", 1);
-    builder.add_operator("beta", "Op", 1);
+    builder.add_operator("alpha", u64(1), SourceLogicalOperatorImpl{});
+    builder.add_operator("beta", u64(1), SourceLogicalOperatorImpl{});
     auto graph = builder.build();
 
     EXPECT_EQ(graph.op("alpha").name(), "alpha");
@@ -140,10 +142,10 @@ TEST(DataflowGraphTest, OpByName) {
 
 TEST(DataflowGraphTest, EdgePartitionModes) {
     DataflowGraphBuilder builder;
-    auto src = builder.add_operator("src", "Source", 1);
-    auto t1 = builder.add_operator("t1", "Op", 1);
-    auto t2 = builder.add_operator("t2", "Op", 1);
-    auto t3 = builder.add_operator("t3", "Op", 1);
+    auto src = builder.add_operator("src", u64(1), SourceLogicalOperatorImpl{});
+    auto t1 = builder.add_operator("t1", u64(1), SourceLogicalOperatorImpl{});
+    auto t2 = builder.add_operator("t2", u64(1), SourceLogicalOperatorImpl{});
+    auto t3 = builder.add_operator("t3", u64(1), SourceLogicalOperatorImpl{});
 
     builder.add_edge(src, t1, EdgePartition::Forward);
     builder.add_edge(src, t2, EdgePartition::Keyed);
@@ -157,9 +159,9 @@ TEST(DataflowGraphTest, EdgePartitionModes) {
 
 TEST(DataflowGraphTest, SourcesOf) {
     DataflowGraphBuilder builder;
-    auto s1 = builder.add_operator("s1", "Source", 1);
-    auto s2 = builder.add_operator("s2", "Source", 1);
-    auto t = builder.add_operator("t", "Sink", 1);
+    auto s1 = builder.add_operator("s1", u64(1), SourceLogicalOperatorImpl{});
+    auto s2 = builder.add_operator("s2", u64(1), SourceLogicalOperatorImpl{});
+    auto t = builder.add_operator("t", u64(1), SinkLogicalOperatorImpl{});
 
     builder.add_edge(s1, t, EdgePartition::Forward);
     builder.add_edge(s2, t, EdgePartition::Forward);
@@ -173,9 +175,9 @@ TEST(DataflowGraphTest, SourcesOf) {
 
 TEST(DataflowGraphTest, TargetsOf) {
     DataflowGraphBuilder builder;
-    auto s = builder.add_operator("s", "Source", 1);
-    auto t1 = builder.add_operator("t1", "Sink", 1);
-    auto t2 = builder.add_operator("t2", "Sink", 1);
+    auto s = builder.add_operator("s", u64(1), SourceLogicalOperatorImpl{});
+    auto t1 = builder.add_operator("t1", u64(1), SinkLogicalOperatorImpl{});
+    auto t2 = builder.add_operator("t2", u64(1), SinkLogicalOperatorImpl{});
 
     builder.add_edge(s, t1, EdgePartition::Forward);
     builder.add_edge(s, t2, EdgePartition::Keyed);
@@ -189,8 +191,8 @@ TEST(DataflowGraphTest, TargetsOf) {
 
 TEST(DataflowGraphTest, NoEdgesProducesEmptySourceTargets) {
     DataflowGraphBuilder builder;
-    builder.add_operator("a", "Op", 1);
-    builder.add_operator("b", "Op", 1);
+    builder.add_operator("a", u64(1), SourceLogicalOperatorImpl{});
+    builder.add_operator("b", u64(1), SinkLogicalOperatorImpl{});
     auto graph = builder.build();
 
     EXPECT_TRUE(graph.sources_of(graph.operators()[1].id()).empty());
@@ -199,9 +201,9 @@ TEST(DataflowGraphTest, NoEdgesProducesEmptySourceTargets) {
 
 TEST(DataflowGraphTest, Roots) {
     DataflowGraphBuilder builder;
-    auto src = builder.add_operator("src", "Source", 1);
-    auto map = builder.add_operator("map", "Map", 1);
-    auto sink = builder.add_operator("sink", "Sink", 1);
+    auto src = builder.add_operator("src", u64(1), SourceLogicalOperatorImpl{});
+    auto map = builder.add_operator("map", u64(1), SourceLogicalOperatorImpl{});
+    auto sink = builder.add_operator("sink", u64(1), SinkLogicalOperatorImpl{});
 
     builder.add_edge(src, map, EdgePartition::Forward);
     builder.add_edge(map, sink, EdgePartition::Forward);
@@ -214,9 +216,9 @@ TEST(DataflowGraphTest, Roots) {
 
 TEST(DataflowGraphTest, MultipleRoots) {
     DataflowGraphBuilder builder;
-    auto s1 = builder.add_operator("s1", "Source", 1);
-    auto s2 = builder.add_operator("s2", "Source", 1);
-    auto join = builder.add_operator("join", "Join", 1);
+    auto s1 = builder.add_operator("s1", u64(1), SourceLogicalOperatorImpl{});
+    auto s2 = builder.add_operator("s2", u64(1), SourceLogicalOperatorImpl{});
+    auto join = builder.add_operator("join", u64(1), SourceLogicalOperatorImpl{});
 
     builder.add_edge(s1, join, EdgePartition::Forward);
     builder.add_edge(s2, join, EdgePartition::Forward);
@@ -228,9 +230,9 @@ TEST(DataflowGraphTest, MultipleRoots) {
 
 TEST(DataflowGraphTest, Leaves) {
     DataflowGraphBuilder builder;
-    auto src = builder.add_operator("src", "Source", 1);
-    auto op1 = builder.add_operator("op1", "Map", 1);
-    auto op2 = builder.add_operator("op2", "Map", 1);
+    auto src = builder.add_operator("src", u64(1), SourceLogicalOperatorImpl{});
+    auto op1 = builder.add_operator("op1", u64(1), SourceLogicalOperatorImpl{});
+    auto op2 = builder.add_operator("op2", u64(1), SourceLogicalOperatorImpl{});
 
     builder.add_edge(src, op1, EdgePartition::Forward);
     builder.add_edge(src, op2, EdgePartition::Forward);
@@ -244,9 +246,9 @@ TEST(DataflowGraphTest, Leaves) {
 
 TEST(DataflowGraphTest, InOutDegree) {
     DataflowGraphBuilder builder;
-    auto src = builder.add_operator("src", "Source", 1);
-    auto map = builder.add_operator("map", "Map", 1);
-    auto sink = builder.add_operator("sink", "Sink", 1);
+    auto src = builder.add_operator("src", u64(1), SourceLogicalOperatorImpl{});
+    auto map = builder.add_operator("map", u64(1), SourceLogicalOperatorImpl{});
+    auto sink = builder.add_operator("sink", u64(1), SinkLogicalOperatorImpl{});
 
     builder.add_edge(src, map, EdgePartition::Forward);
     builder.add_edge(map, sink, EdgePartition::Forward);
@@ -262,9 +264,9 @@ TEST(DataflowGraphTest, InOutDegree) {
 
 TEST(DataflowGraphTest, TopologicalOrderSimple) {
     DataflowGraphBuilder builder;
-    auto src = builder.add_operator("src", "Source", 1);
-    auto map = builder.add_operator("map", "Map", 1);
-    auto sink = builder.add_operator("sink", "Sink", 1);
+    auto src = builder.add_operator("src", u64(1), SourceLogicalOperatorImpl{});
+    auto map = builder.add_operator("map", u64(1), SourceLogicalOperatorImpl{});
+    auto sink = builder.add_operator("sink", u64(1), SinkLogicalOperatorImpl{});
 
     builder.add_edge(src, map, EdgePartition::Forward);
     builder.add_edge(map, sink, EdgePartition::Forward);
@@ -279,10 +281,10 @@ TEST(DataflowGraphTest, TopologicalOrderSimple) {
 
 TEST(DataflowGraphTest, TopologicalOrderDiamond) {
     DataflowGraphBuilder builder;
-    auto src = builder.add_operator("src", "Source", 1);
-    auto op1 = builder.add_operator("op1", "Map", 1);
-    auto op2 = builder.add_operator("op2", "Map", 1);
-    auto sink = builder.add_operator("sink", "Sink", 1);
+    auto src = builder.add_operator("src", u64(1), SourceLogicalOperatorImpl{});
+    auto op1 = builder.add_operator("op1", u64(1), SourceLogicalOperatorImpl{});
+    auto op2 = builder.add_operator("op2", u64(1), SourceLogicalOperatorImpl{});
+    auto sink = builder.add_operator("sink", u64(1), SinkLogicalOperatorImpl{});
 
     builder.add_edge(src, op1, EdgePartition::Forward);
     builder.add_edge(src, op2, EdgePartition::Forward);

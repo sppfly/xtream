@@ -104,41 +104,122 @@ cd build && ctest --output-on-failure
 
 ---
 
-## Phase 4: Operator Interface + Simple Operators
+## Phase 4: Operator Interfaces + Simple Operators
 
 **Depends on**: Phase 3
 
-### Deliverables
+**Key insight**: `OperatorDescriptor` (Phase 3) is a lightweight placeholder — now absorbed
+into `LogicalOperator`. Two distinct layers emerge: user-facing description vs. runtime
+execution. Graph topology lives **only** in `DataflowGraph` edges, not on LogicalOperator.
 
-| Task | Files |
-|------|-------|
-| `Operator` abstract class | `interfaces/operator.h` |
-| `OneInputOperator` | `interfaces/one_input_operator.h` |
-| `TwoInputOperator` | `interfaces/two_input_operator.h` |
-| `SourceOperator` | `interfaces/source_operator.h` |
-| `SinkOperator` | `interfaces/sink_operator.h` |
-| `Collector` | `interfaces/collector.h` — output collector interface |
-| `OperatorContext` | `interfaces/operator_context.h` — runtime config, metric counters, watermark access |
-| `CollectionSource` | `src/operators/collection_source.h` — emits from in-memory vector |
-| `MapOperator` | `src/operators/map_operator.h` — transforms Event<IN> → Event<OUT> |
-| `FilterOperator` | `src/operators/filter_operator.h` — drops events not matching predicate |
-| `CollectSink` | `src/operators/collect_sink.h` — appends to in-memory vector |
+### Deliverable 1 — Function Concepts
+
+C++20 concepts that constrain user-provided callables. No inheritance, no macros.
+
+| File | Concept | Signature |
+|------|---------|-----------|
+| `interfaces/functions/map_function.h` | `MapFunction<F, IN, OUT>` | `auto(Event<IN>&) -> Event<OUT>` |
+| `interfaces/functions/filter_function.h` | `FilterFunction<F, T>` | `auto(Event<T>&) -> bool` |
+| `interfaces/functions/source_function.h` | `SourceFunction<F, OUT>` | produces events to a `SourceEmitter<OUT>&` |
+| `interfaces/functions/sink_function.h` | `SinkFunction<F, IN>` | `auto(Event<IN>&) -> void` |
+
+### Deliverable 2 — LogicalOperator (User Side)
+
+Pure description, no lifecycle. Replaces `OperatorDescriptor` in `DataflowGraph`.
+
+**`OperatorDescriptor` is removed.** The `DataflowGraph` now holds:
+```
+DataflowGraph
+  ├── nodes: vector<LogicalOperator>   ← replaces OperatorDescriptor
+  └── edges: vector<StreamEdge>
+```
+
+| File | Description |
+|------|-------------|
+| `interfaces/operators/logical/logical_operator.h` | Base: id, name, parallelism, output_schema. **No children** — topology is in DataflowGraph. |
+| `interfaces/operators/logical/map_logical_operator.h` | Holds a `MapFunction` |
+| `interfaces/operators/logical/filter_logical_operator.h` | Holds a `FilterFunction` |
+| `interfaces/operators/logical/source_logical_operator.h` | Holds a `SourceFunction` |
+| `interfaces/operators/logical/sink_logical_operator.h` | Holds a `SinkFunction` |
+
+### Deliverable 3 — PhysicalOperator (Engine Side)
+
+Runtime execution unit with lifecycle. Engine compiles LogicalOperator → PhysicalOperator.
+
+| File | Description |
+|------|-------------|
+| `interfaces/operators/physical/physical_operator.h` | Lifecycle interface: `setup` / `open` / `execute` / `close` / `terminate` |
+| `interfaces/operators/physical/operator_context.h` | `emit()`, `get_watermark()`, `get_global_state()`, `get_local_state()`, `get_config()`, `metrics()` |
+| `src/operators/physical/map_physical_operator.h` | Calls MapFunction on each record, then chains to next |
+| `src/operators/physical/filter_physical_operator.h` | Drops records that fail predicate, chains rest |
+| `src/operators/physical/collection_source_physical_operator.h` | Emits events from an in-memory vector via `OperatorContext::emit()` |
+| `src/operators/physical/collect_sink_physical_operator.h` | Appends received events to in-memory vector |
+
+#### PhysicalOperator Lifecycle
+
+```
+setup(ctx)                    ← one-time, query start
+  └─ open(ctx, buffer)        ← per-batch start
+       └─ execute(ctx, record) ← per-record (×N)
+  └─ close(ctx, buffer)       ← per-batch end
+terminate(ctx)                ← one-time, query end
+```
+
+- `setup/terminate`: global state (query lifetime)
+- `open/execute/close`: per-batch (pipeline invocation)
+- PhysicalOperators form a chain: `MapPhysical` calls next op's `execute()` after its own
+
+#### OperatorContext (Runtime)
+
+| Method | Description |
+|--------|-------------|
+| `emit(RecordBuffer)` | Send output to downstream pipeline stage |
+| `get_watermark() -> Timestamp` | Current watermark |
+| `get_global_state(id) -> State*` | Query-lifetime state |
+| `get_local_state(id) -> State*` | Batch-lifetime state |
+| `get_config(key) -> Value` | Operator config params |
+| `metrics()` | Counter access |
+
+### Compilation Bridge
+
+Engine traverses `DataflowGraph` linearly (by edges, not recursion):
+
+```
+for each node in DataflowGraph:
+    physical = compile(logical_op)     // LogicalOperator → PhysicalOperator
+
+for each edge in DataflowGraph:
+    connect(source_physical, target_physical, edge.partitioning())
+```
+
+Each LogicalOperator knows how to construct its physical counterpart.
 
 ### Design Constraints
 
-- `Collector.collect(Event)` is the only way to emit output
-- Operators are NOT thread-safe by default; the engine serializes access per instance
-- `OperatorContext` provides access to config, metrics counters, and current watermark
-- `MapFunction`, `FilterFunction` are function objects / lambdas passed to operators
-- Lifecycle: `open()` → `[processElement() × N]` → `close()`
+- **LogicalOperator**: no children, no lifecycle, just a description
+- **PhysicalOperator**: NOT thread-safe; engine serializes access per instance
+- Output only through `OperatorContext::emit()` — no direct downstream references
+- Functions (MapFunction etc.) are stateless callables; state lives in PhysicalOperator
+- `OperatorDescriptor` is **removed** in this phase
 
 ### Tests
 
-- Lifecycle ordering (open → process → close)
-- Collector delivers events in order
-- Map transforms every event
-- Filter correctly drops non-matching events
-- End-to-end: CollectionSource → Map → Filter → CollectSink
+**Function concept tests:**
+- Lambda satisfies MapFunction concept
+- Lambda satisfies FilterFunction concept
+- Compile-time rejection of wrong signatures
+
+**LogicalOperator tests:**
+- Construction, copy semantics
+- Replaces `OperatorDescriptor` in `DataflowGraph` (existing graph tests pass)
+- Name, id, parallelism round-trip
+
+**PhysicalOperator tests:**
+- Lifecycle ordering (setup → open → execute → close → terminate)
+- MapPhysicalOperator transforms every event
+- FilterPhysicalOperator drops non-matching events
+- Chain: SourcePhysical → MapPhysical → FilterPhysical → CollectSinkPhysical
+- OperatorContext::emit delivers events through chain in order
 
 ---
 
@@ -163,8 +244,8 @@ cd build && ctest --output-on-failure
 ### Execution Flow
 
 1. `submit(JobGraph)` → `GreedyPlacer.place()` → `PhysicalPlan`
-2. Instantiate operators per plan
-3. Wire collectors between tasks according to edge partitioning
+2. Instantiate PhysicalOperators per plan (compile logical → physical)
+3. Wire `OperatorContext::emit()` routing between tasks according to edge partitioning
 4. `execute()` → start all slots → run until all sources exhausted
 5. Graceful shutdown: close sinks first, then upstream
 
@@ -172,7 +253,7 @@ cd build && ctest --output-on-failure
 
 - `ExecutionEngine` is the pluggable interface — both engines inherit from it
 - One task per slot, one thread per slot
-- Inter-task communication via in-process queue (thread-safe MPSC or ring buffer)
+- Inter-task communication via `OperatorContext::emit()` into thread-safe MPSC queue
 - Slots are static; no dynamic resizing
 
 ### Tests
@@ -254,22 +335,32 @@ Each partition has a lock/token. An executor must acquire it before processing t
 
 **Depends on**: Phase 6
 
-### Deliverables
+Following the same two-layer split as Phase 4.
+
+### Logical Layer (User-Facing, Pure Description)
 
 | Task | Files |
 |------|-------|
-| `KeyByOperator` | `src/operators/keyby_operator.h` — routes events to downstream by key (mod N) |
-| `TumblingWindow` | `src/operators/tumbling_window.h` — fixed-size non-overlapping windows |
-| `SlidingWindow` | `src/operators/sliding_window.h` — overlapping windows |
-| `WindowAssigner` | `src/operators/window_assigner.h` — assigns events to window(s) |
-| `ReduceOperator` | `src/operators/reduce_operator.h` — incremental aggregation |
-| `WindowApply` | `src/operators/window_apply.h` — applies function to windowed data on trigger |
-| `JoinOperator` | `src/operators/join_operator.h` — inner join on key, time-windowed |
+| `KeyByLogicalOperator` | `interfaces/operators/logical/keyby_logical_operator.h` — holds key extractor function |
+| `TumblingWindowLogicalOperator` | `interfaces/operators/logical/tumbling_window_logical_operator.h` — window size + aggregate |
+| `SlidingWindowLogicalOperator` | `interfaces/operators/logical/sliding_window_logical_operator.h` — size, slide, aggregate |
+| `ReduceLogicalOperator` | `interfaces/operators/logical/reduce_logical_operator.h` — associative reduce function |
+| `JoinLogicalOperator` | `interfaces/operators/logical/join_logical_operator.h` — key selector, window spec |
+
+### Physical Layer (Runtime, Lifecycle-Managed)
+
+| Task | Files |
+|------|-------|
+| `KeyByPhysicalOperator` | `src/operators/physical/keyby_physical_operator.h` — routes events to output partition |
+| `TumblingWindowPhysicalOperator` | `src/operators/physical/tumbling_window_physical_operator.h` — stateful window agg |
+| `SlidingWindowPhysicalOperator` | `src/operators/physical/sliding_window_physical_operator.h` — overlapping window state |
+| `ReducePhysicalOperator` | `src/operators/physical/reduce_physical_operator.h` — incremental reduce with state |
+| `JoinPhysicalOperator` | `src/operators/physical/join_physical_operator.h` — time-windowed join, dual input |
 
 ### Design Constraints
 
 - `KeyBy` changes edge partitioning to `Keyed` — affects how the engine routes events
-- Window operators hold state in-memory; triggers from Phase 6
+- Window operators hold state in-memory via `OperatorContext::get_global_state()`; triggers from Phase 6
 - Windows fire when the watermark passes `window_end + allowed_lateness`
 - Join uses `WatermarkPropagator` to align watermarks from both sides
 

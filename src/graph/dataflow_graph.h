@@ -6,20 +6,21 @@
 #include <unordered_map>
 #include <vector>
 
-#include "graph/operator_descriptor.h"
+#include "core/id.h"
 #include "graph/stream_edge.h"
+#include "operators/logical/logical_operator.h"
 
 namespace extream {
 
 class DataflowGraph {
 public:
-    DataflowGraph(std::vector<OperatorDescriptor> operators, std::vector<StreamEdge> edges)
+    DataflowGraph(std::vector<LogicalOperator> operators, std::vector<StreamEdge> edges)
         : operators_(std::move(operators)), edges_(std::move(edges)) {}
 
-    const std::vector<OperatorDescriptor>& operators() const { return operators_; }
+    const std::vector<LogicalOperator>& operators() const { return operators_; }
     const std::vector<StreamEdge>& edges() const { return edges_; }
 
-    const OperatorDescriptor& op(OperatorId id) const {
+    const LogicalOperator& op(OperatorId id) const {
         for (const auto& op : operators_) {
             if (op.id() == id) {
                 return op;
@@ -28,7 +29,7 @@ public:
         assert(false);
     }
 
-    const OperatorDescriptor& op(std::string_view name) const {
+    const LogicalOperator& op(std::string_view name) const {
         for (const auto& op : operators_) {
             if (op.name() == name) {
                 return op;
@@ -147,7 +148,7 @@ public:
     }
 
 private:
-    std::vector<OperatorDescriptor> operators_;
+    std::vector<LogicalOperator> operators_;
     std::vector<StreamEdge> edges_;
 };
 

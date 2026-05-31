@@ -93,6 +93,7 @@ All placement algorithms must implement a unified placement interface.
 - **After each session**: update [PLAN.md](./PLAN.md) to reflect completion status, then commit
 
 ### Code Style
+- **No Implicit conversion**. For basic types like int, we have strong typed ones, use it instead.
 
 - **No macros**. C++26 has replacements for every macro use case except platform conditionals:
   | Use case | Replacement |

@@ -1,12 +1,10 @@
 #pragma once
 
+#include <cstdint>
+
 #include "core/id.h"
-#include "graph/operator_descriptor.h"
 
 namespace extream {
-
-struct EdgeTag {};
-using EdgeId = Id<EdgeTag>;
 
 enum class EdgePartition : uint8_t { Forward, Keyed, Broadcast };
 

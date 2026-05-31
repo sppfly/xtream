@@ -1,3 +1,7 @@
+// File: core/id.h
+
+// ... (existing Id template)
+
 #pragma once
 
 #include <compare>
@@ -19,6 +23,12 @@ public:
 private:
     u64 value_;
 };
+
+struct OperatorTag {};
+using OperatorId = Id<OperatorTag>;
+
+struct EdgeTag {};
+using EdgeId = Id<EdgeTag>;
 
 }  // namespace extream
 

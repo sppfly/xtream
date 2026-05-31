@@ -18,16 +18,18 @@ add_executable(extream_tests
     core/id_test.cpp
     graph/dataflow_graph_test.cpp
     util/log/logger_test.cpp
+    functions/function_concepts_test.cpp
+    operators/logical_operator_test.cpp
 )
 target_link_libraries(extream_tests PRIVATE extream_core GTest::gtest GTest::gtest_main)
 
 if(ENABLE_ASAN)
-    target_compile_options(extream_tests PRIVATE -fsanitize=address)
-    target_link_options(extream_tests PRIVATE -fsanitize=address)
+  target_compile_options(extream_tests PRIVATE -fsanitize=address)
+  target_link_options(extream_tests PRIVATE -fsanitize=address)
 endif()
 if(ENABLE_UBSAN)
-    target_compile_options(extream_tests PRIVATE -fsanitize=undefined)
-    target_link_options(extream_tests PRIVATE -fsanitize=undefined)
+  target_compile_options(extream_tests PRIVATE -fsanitize=undefined)
+  target_link_options(extream_tests PRIVATE -fsanitize=undefined)
 endif()
 
 include(GoogleTest)
