@@ -36,15 +36,7 @@ public:
     }
 
     bool is_compatible_with(const StreamSchema& other) const {
-        if (fields_.size() != other.fields_.size()) {
-            return false;
-        }
-        for (size_t i = 0; i < fields_.size(); ++i) {
-            if (fields_[i] != other.fields_[i]) {
-                return false;
-            }
-        }
-        return true;
+        return std::ranges::equal(fields_, other.fields_);
     }
 
 private:
