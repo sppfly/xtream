@@ -10,13 +10,11 @@ class CollectSinkPhysicalOperator : public PhysicalOperator {
 public:
     using Data = std::vector<Event<Record>>;
 
-    void setup(OperatorContext&) override {}
-    void open(OperatorContext&) override {}
-    void execute(OperatorContext&, Event<Record>& record) override {
-        collected_.push_back(std::move(record));
-    }
-    void close(OperatorContext&) override {}
-    void terminate(OperatorContext&) override {}
+    void setup() override {}
+    void open() override {}
+    void execute(Event<Record>& record) override { collected_.push_back(std::move(record)); }
+    void close() override {}
+    void terminate() override {}
 
     const Data& collected() const { return collected_; }
 

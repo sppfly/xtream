@@ -12,15 +12,17 @@ public:
 
     explicit FilterPhysicalOperator(Pred pred) : pred_(std::move(pred)) {}
 
-    void setup(OperatorContext&) override {}
-    void open(OperatorContext&) override {}
-    void execute(OperatorContext& ctx, Event<Record>& record) override {
+    void setup() override {}
+    void open() override {}
+    void execute(Event<Record>& record) override {
         if (pred_(record)) {
-            ctx.emit(record);
+            if (next_) {
+                next_->execute(record);
+            }
         }
     }
-    void close(OperatorContext&) override {}
-    void terminate(OperatorContext&) override {}
+    void close() override {}
+    void terminate() override {}
 
 private:
     Pred pred_;

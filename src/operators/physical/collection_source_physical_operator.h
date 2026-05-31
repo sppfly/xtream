@@ -12,17 +12,19 @@ public:
 
     explicit CollectionSourcePhysicalOperator(Data data) : data_(std::move(data)) {}
 
-    void setup(OperatorContext&) override {}
-    void open(OperatorContext&) override { idx_ = 0; }
-    void execute(OperatorContext& ctx, Event<Record>&) override {
+    void setup() override {}
+    void open() override { idx_ = 0; }
+    void execute(Event<Record>&) override {
         if (idx_ < data_.size()) {
             auto copy = data_[idx_];
             ++idx_;
-            ctx.emit(std::move(copy));
+            if (next_) {
+                next_->execute(copy);
+            }
         }
     }
-    void close(OperatorContext&) override {}
-    void terminate(OperatorContext&) override {}
+    void close() override {}
+    void terminate() override {}
 
     const Data& data() const { return data_; }
 

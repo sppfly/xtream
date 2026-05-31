@@ -12,14 +12,16 @@ public:
 
     explicit MapPhysicalOperator(Func func) : func_(std::move(func)) {}
 
-    void setup(OperatorContext&) override {}
-    void open(OperatorContext&) override {}
-    void execute(OperatorContext& ctx, Event<Record>& record) override {
+    void setup() override {}
+    void open() override {}
+    void execute(Event<Record>& record) override {
         auto result = func_(record);
-        ctx.emit(std::move(result));
+        if (next_) {
+            next_->execute(result);
+        }
     }
-    void close(OperatorContext&) override {}
-    void terminate(OperatorContext&) override {}
+    void close() override {}
+    void terminate() override {}
 
 private:
     Func func_;
