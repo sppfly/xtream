@@ -104,170 +104,110 @@ cd build && ctest --output-on-failure
 
 ---
 
-## Phase 4: Operator Interfaces + Simple Operators
+## Phase 4: Operator Interfaces + Simple Operators ✅ DONE
 
 **Depends on**: Phase 3
-
-**Key insight**: `OperatorDescriptor` (Phase 3) is a lightweight placeholder — now absorbed
-into `LogicalOperator`. Two distinct layers emerge: user-facing description vs. runtime
-execution. Graph topology lives **only** in `DataflowGraph` edges, not on LogicalOperator.
-
-### Deliverable 1 — Function Concepts
-
-C++20 concepts that constrain user-provided callables. No inheritance, no macros.
-
-| File | Concept | Signature |
-|------|---------|-----------|
-| `interfaces/functions/map_function.h` | `MapFunction<F, IN, OUT>` | `auto(Event<IN>&) -> Event<OUT>` |
-| `interfaces/functions/filter_function.h` | `FilterFunction<F, T>` | `auto(Event<T>&) -> bool` |
-| `interfaces/functions/source_function.h` | `SourceFunction<F, OUT>` | produces events to a `SourceEmitter<OUT>&` |
-| `interfaces/functions/sink_function.h` | `SinkFunction<F, IN>` | `auto(Event<IN>&) -> void` |
-
-### Deliverable 2 — LogicalOperator (User Side)
-
-Pure description, no lifecycle. Replaces `OperatorDescriptor` in `DataflowGraph`.
-
-**`OperatorDescriptor` is removed.** The `DataflowGraph` now holds:
-```
-DataflowGraph
-  ├── nodes: vector<LogicalOperator>   ← replaces OperatorDescriptor
-  └── edges: vector<StreamEdge>
-```
-
-| File | Description |
-|------|-------------|
-| `interfaces/operators/logical/logical_operator.h` | Base: id, name, parallelism, output_schema. **No children** — topology is in DataflowGraph. |
-| `interfaces/operators/logical/map_logical_operator.h` | Holds a `MapFunction` |
-| `interfaces/operators/logical/filter_logical_operator.h` | Holds a `FilterFunction` |
-| `interfaces/operators/logical/source_logical_operator.h` | Holds a `SourceFunction` |
-| `interfaces/operators/logical/sink_logical_operator.h` | Holds a `SinkFunction` |
-
-### Deliverable 3 — PhysicalOperator (Engine Side)
-
-Runtime execution unit with lifecycle. Engine compiles LogicalOperator → PhysicalOperator.
-
-| File | Description |
-|------|-------------|
-| `interfaces/operators/physical/physical_operator.h` | Lifecycle interface: `setup` / `open` / `execute` / `close` / `terminate` |
-| `interfaces/operators/physical/operator_context.h` | `emit()`, `get_watermark()`, `get_global_state()`, `get_local_state()`, `get_config()`, `metrics()` |
-| `src/operators/physical/map_physical_operator.h` | Calls MapFunction on each record, then chains to next |
-| `src/operators/physical/filter_physical_operator.h` | Drops records that fail predicate, chains rest |
-| `src/operators/physical/collection_source_physical_operator.h` | Emits events from an in-memory vector via `OperatorContext::emit()` |
-| `src/operators/physical/collect_sink_physical_operator.h` | Appends received events to in-memory vector |
-
-#### PhysicalOperator Lifecycle
-
-```
-setup(ctx)                    ← one-time, query start
-  └─ open(ctx, buffer)        ← per-batch start
-       └─ execute(ctx, record) ← per-record (×N)
-  └─ close(ctx, buffer)       ← per-batch end
-terminate(ctx)                ← one-time, query end
-```
-
-- `setup/terminate`: global state (query lifetime)
-- `open/execute/close`: per-batch (pipeline invocation)
-- PhysicalOperators form a chain: `MapPhysical` calls next op's `execute()` after its own
-
-#### OperatorContext (Runtime)
-
-| Method | Description |
-|--------|-------------|
-| `emit(RecordBuffer)` | Send output to downstream pipeline stage |
-| `get_watermark() -> Timestamp` | Current watermark |
-| `get_global_state(id) -> State*` | Query-lifetime state |
-| `get_local_state(id) -> State*` | Batch-lifetime state |
-| `get_config(key) -> Value` | Operator config params |
-| `metrics()` | Counter access |
-
-### Compilation Bridge
-
-Engine traverses `DataflowGraph` linearly (by edges, not recursion):
-
-```
-for each node in DataflowGraph:
-    physical = compile(logical_op)     // LogicalOperator → PhysicalOperator
-
-for each edge in DataflowGraph:
-    connect(source_physical, target_physical, edge.partitioning())
-```
-
-Each LogicalOperator knows how to construct its physical counterpart.
-
-### Design Constraints
-
-- **LogicalOperator**: no children, no lifecycle, just a description
-- **PhysicalOperator**: NOT thread-safe; engine serializes access per instance
-- Output only through `OperatorContext::emit()` — no direct downstream references
-- Functions (MapFunction etc.) are stateless callables; state lives in PhysicalOperator
-- `OperatorDescriptor` is **removed** in this phase
-
-### Tests
-
-**Function concept tests:**
-- Lambda satisfies MapFunction concept
-- Lambda satisfies FilterFunction concept
-- Compile-time rejection of wrong signatures
-
-**LogicalOperator tests:**
-- Construction, copy semantics
-- Replaces `OperatorDescriptor` in `DataflowGraph` (existing graph tests pass)
-- Name, id, parallelism round-trip
-
-**PhysicalOperator tests:**
-- Lifecycle ordering (setup → open → execute → close → terminate)
-- MapPhysicalOperator transforms every event
-- FilterPhysicalOperator drops non-matching events
-- Chain: SourcePhysical → MapPhysical → FilterPhysical → CollectSinkPhysical
-- OperatorContext::emit delivers events through chain in order
-
----
-
-## Phase 5: Engine A — Fixed-Slot (Single-Node)
-
-**Depends on**: Phase 4
 
 ### Deliverables
 
 | Task | Files |
 |------|-------|
-| `ExecutionEngine` interface | `interfaces/execution_engine.h` — `submit(JobGraph)`, `execute()`, `cancel()` |
-| `JobGraph` | `interfaces/job_graph.h` — flattened task graph from DAG |
-| `Task` | `interfaces/task.h` — single operator instance with assigned parallelism index |
-| `TaskState` | `interfaces/task_state.h` — CREATED → SCHEDULED → RUNNING → FINISHED / FAILED / CANCELLED |
-| `PhysicalPlan` | `interfaces/physical_plan.h` — mapping Task → Worker |
-| `SlotEngine` | `src/engine/slot/slot_engine.h` — implements `ExecutionEngine` |
-| `SlotManager` | `src/engine/slot/slot_manager.h` — maintains N slots, assigns tasks to slots |
-| `Slot` | `src/engine/slot/slot.h` — owns a thread, runs one task at a time |
-| `GreedyPlacer` | `src/placement/greedy_placer.h` — first-fit operator placement |
+| Function concepts | `interfaces/functions/{map,filter,source,sink}_function.h` — C++20 concepts |
+| LogicalOperator | `interfaces/operators/logical/logical_operator.h` — type-erased wrapper |
+| 4 LogicalOperatorImpl | `interfaces/operators/logical/{map,filter,source,sink}_logical_operator.h` |
+| PhysicalOperator | `interfaces/operators/physical/physical_operator.h` — lifecycle + shared_ptr chain |
+| 4 PhysicalOperator | `src/operators/physical/{map,filter,collection_source,collect_sink}_physical_operator.h` |
+| OperatorDescriptor removed | `DataflowGraph` now holds `vector<LogicalOperator>` + `vector<StreamEdge>` |
 
-### Execution Flow
+### Design Decisions Made
 
-1. `submit(JobGraph)` → `GreedyPlacer.place()` → `PhysicalPlan`
-2. Instantiate PhysicalOperators per plan (compile logical → physical)
-3. Wire `OperatorContext::emit()` routing between tasks according to edge partitioning
-4. `execute()` → start all slots → run until all sources exhausted
-5. Graceful shutdown: close sinks first, then upstream
+- **PhysicalOperator uses shared_ptr chain**: operators hold `shared_ptr<PhysicalOperator> next_`, call `next_->execute()` directly. No OperatorContext for routing.
+- **Lifecycle without ctx**: `setup()`, `open()`, `execute(Event<Record>&)`, `close()`, `terminate()` — all parameterless except execute. OperatorContext deferred to Phase 6.
+- **Source/Sink logical operators are stubs**: `SourceLogicalOperatorImpl` and `SinkLogicalOperatorImpl` carry no function payload. They'll be filled when the compilation bridge is built.
+- **Function concepts exist but aren't enforced on LogicalOperator**: `MapLogicalOperatorImpl` uses `std::function` directly, not the `MapFunction` concept. Concept enforcement is a future improvement.
+
+### What Was NOT Done (deferred)
+
+- **OperatorContext**: runtime context for watermark, state, config, metrics → Phase 6
+- **Compilation bridge**: LogicalOperator → PhysicalOperator → Phase 5
+- **Concept enforcement on LogicalOperator**: LogicalOperatorImpl uses `std::function`, not concepts
+
+### Test Coverage (158 total, 26 new in Phase 4)
+
+- Function concepts: lambda/functor satisfies each concept, wrong signatures rejected
+- LogicalOperator: construction, type_name, id, parallelism, stored in vector
+- PhysicalOperator: lifecycle ordering, map transforms, filter drops, chain execution
+
+---
+
+## Phase 5: Compilation Bridge + Simple Execution
+
+**Depends on**: Phase 4
+
+Current operators (Map, Filter, Source, Sink) are all stateless and cascadable. They run
+in a single chain on one thread. No slots, no threads, no placement needed yet.
+
+### Deliverables
+
+| Task | Files |
+|------|-------|
+| Compilation bridge | `src/engine/compiler.h` — `DataflowGraph` → `PhysicalOperator` chain |
+| LogicalOperator.compile() | Add virtual `compile()` to `LogicalOperator::Concept` |
+| Fill Source/Sink stubs | `SourceLogicalOperatorImpl` and `SinkLogicalOperatorImpl` store actual functions |
+| Simple execution | `src/engine/simple_engine.h` — compile + trigger source, chain runs end-to-end |
+| Parallelism > 1 | Chain duplication: operator with parallelism N produces N chains |
+
+### Compilation Bridge Design
+
+```
+DataflowGraph
+    │ topological_order()
+    ▼
+for each LogicalOperator:
+    physical = logical.compile()    // virtual dispatch → MapLogicalOperatorImpl.compile() → MapPhysicalOperator
+    link to previous via set_next()
+
+source->open()
+source->execute(dummy)   // triggers whole chain
+source->close()
+```
+
+### Parallelism > 1
+
+For operators with parallelism > 1, the compiler duplicates the downstream chain:
+```
+Source (parallelism=1) → Map (parallelism=3) → Sink (parallelism=1)
+                              │
+                    ┌─────────┼─────────┐
+                    ▼         ▼         ▼
+              MapChain1  MapChain2  MapChain3
+                    │         │         │
+                    └─────────┼─────────┘
+                              ▼
+                            Sink
+```
+
+Source routes events round-robin to N Map chains. Sink merges input from all chains.
 
 ### Design Constraints
 
-- `ExecutionEngine` is the pluggable interface — both engines inherit from it
-- One task per slot, one thread per slot
-- Inter-task communication via `OperatorContext::emit()` into thread-safe MPSC queue
-- Slots are static; no dynamic resizing
+- Single-threaded: all operators run on the calling thread
+- No OperatorContext yet (deferred to Phase 6 for watermark/state)
+- No inter-task communication (no queues, no threads)
+- Compilation is pure: DataflowGraph in, PhysicalOperator chain out
 
 ### Tests
 
-- Simple pipeline (source → map → sink) runs end-to-end
-- Pipeline with parallelism > 1 produces correct results
-- Two-branch DAG (fan-out then fan-in)
-- Graceful shutdown completes all in-flight events
+- Compile single-operator graph (source → sink)
+- Compile multi-operator graph (source → map → filter → sink)
+- Parallelism > 1: source → map(3) → sink produces correct merged output
+- Graph with fan-out compiles correctly
 
 ---
 
 ## Phase 6: Watermark Propagation + Trigger Framework
 
-**Depends on**: Phase 4, Phase 5
+**Depends on**: Phase 5
 
 ### Deliverables
 
@@ -297,9 +237,51 @@ Each LogicalOperator knows how to construct its physical counterpart.
 
 ---
 
-## Phase 7: Engine B — Task-Stealing (Single-Node)
+## Phase 7: Engine A — Fixed-Slot (Single-Node)
 
-**Depends on**: Phase 5
+**Depends on**: Phase 5, Phase 6
+
+### Deliverables
+
+| Task | Files |
+|------|-------|
+| `ExecutionEngine` interface | `interfaces/execution_engine.h` — `submit(JobGraph)`, `execute()`, `cancel()` |
+| `JobGraph` | `interfaces/job_graph.h` — flattened task graph from DAG |
+| `Task` | `interfaces/task.h` — single operator instance with assigned parallelism index |
+| `TaskState` | `interfaces/task_state.h` — CREATED → SCHEDULED → RUNNING → FINISHED / FAILED / CANCELLED |
+| `PhysicalPlan` | `interfaces/physical_plan.h` — mapping Task → Worker |
+| `SlotEngine` | `src/engine/slot/slot_engine.h` — implements `ExecutionEngine` |
+| `SlotManager` | `src/engine/slot/slot_manager.h` — maintains N slots, assigns tasks to slots |
+| `Slot` | `src/engine/slot/slot.h` — owns a thread, runs one task at a time |
+| `GreedyPlacer` | `src/placement/greedy_placer.h` — first-fit operator placement |
+
+### Execution Flow
+
+1. `submit(JobGraph)` → `GreedyPlacer.place()` → `PhysicalPlan`
+2. Instantiate PhysicalOperators per plan (compile logical → physical)
+3. Wire routing between tasks according to edge partitioning
+4. `execute()` → start all slots → run until all sources exhausted
+5. Graceful shutdown: close sinks first, then upstream
+
+### Design Constraints
+
+- `ExecutionEngine` is the pluggable interface — both engines inherit from it
+- One task per slot, one thread per slot
+- Inter-task communication via thread-safe MPSC queue
+- Slots are static; no dynamic resizing
+
+### Tests
+
+- Simple pipeline (source → map → sink) runs end-to-end on multiple slots
+- Pipeline with parallelism > 1 produces correct results
+- Two-branch DAG (fan-out then fan-in)
+- Graceful shutdown completes all in-flight events
+
+---
+
+## Phase 8: Engine B — Task-Stealing (Single-Node)
+
+**Depends on**: Phase 7
 
 ### Deliverables
 
@@ -331,7 +313,7 @@ Each partition has a lock/token. An executor must acquire it before processing t
 
 ---
 
-## Phase 8: Advanced Operators
+## Phase 9: Advanced Operators
 
 **Depends on**: Phase 6
 
@@ -373,9 +355,9 @@ Following the same two-layer split as Phase 4.
 
 ---
 
-## Phase 9: Placement Algorithms
+## Phase 10: Placement Algorithms
 
-**Depends on**: Phase 5, Phase 7
+**Depends on**: Phase 7, Phase 8
 
 ### Deliverables
 
@@ -403,9 +385,9 @@ Following the same two-layer split as Phase 4.
 
 ---
 
-## Phase 10: Complex Topology Validation
+## Phase 11: Complex Topology Validation
 
-**Depends on**: Phase 8
+**Depends on**: Phase 9
 
 ### Deliverables
 

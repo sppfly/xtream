@@ -18,7 +18,7 @@ public:
     virtual void terminate() = 0;
 
     void set_next(std::shared_ptr<PhysicalOperator> next) { next_ = std::move(next); }
-    PhysicalOperator* next() const { return next_.get(); }
+    std::shared_ptr<PhysicalOperator> next() const { return next_; }
 
 protected:
     std::shared_ptr<PhysicalOperator> next_;
