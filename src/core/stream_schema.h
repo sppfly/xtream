@@ -1,6 +1,7 @@
 #pragma once
 
 #include <optional>
+#include <ranges>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -28,10 +29,8 @@ public:
     size_t field_count() const { return fields_.size(); }
 
     std::optional<size_t> field_index(std::string_view name) const {
-        for (size_t i = 0; i < fields_.size(); ++i) {
-            if (fields_[i].name == name) {
-                return i;
-            }
+        for (auto [i, f] : fields_ | std::views::enumerate) {
+            if (f.name == name) return i;
         }
         return std::nullopt;
     }
