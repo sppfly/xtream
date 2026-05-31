@@ -205,83 +205,64 @@ Source routes events round-robin to N Map chains. Sink merges input from all cha
 
 ---
 
-## Phase 6: Engine A — Fixed-Slot (Single-Node)
+## Phase 6: Pipeline — Single-Threaded Execution
 
 **Depends on**: Phase 5
 
-### Deliverables
-
-| Task | Files |
-|------|-------|
-| `ExecutionEngine` interface | `interfaces/execution_engine.h` — `submit(JobGraph)`, `execute()`, `cancel()` |
-| `JobGraph` | `interfaces/job_graph.h` — flattened task graph from DAG |
-| `Task` | `interfaces/task.h` — single operator instance with assigned parallelism index |
-| `TaskState` | `interfaces/task_state.h` — CREATED → SCHEDULED → RUNNING → FINISHED / FAILED / CANCELLED |
-| `PhysicalPlan` | `interfaces/physical_plan.h` — mapping Task → Worker |
-| `SlotEngine` | `src/engine/slot/slot_engine.h` — implements `ExecutionEngine` |
-| `SlotManager` | `src/engine/slot/slot_manager.h` — maintains N slots, assigns tasks to slots |
-| `Slot` | `src/engine/slot/slot.h` — owns a thread, runs one task at a time |
-| `GreedyPlacer` | `src/placement/greedy_placer.h` — first-fit operator placement |
-
-### Execution Flow
-
-1. `submit(JobGraph)` → `GreedyPlacer.place()` → `PhysicalPlan`
-2. Instantiate PhysicalOperators per plan (compile logical → physical)
-3. Wire routing between tasks according to edge partitioning
-4. `execute()` → start all slots → run until all sources exhausted
-5. Graceful shutdown: close sinks first, then upstream
-
-### Design Constraints
-
-- `ExecutionEngine` is the pluggable interface — both engines inherit from it
-- One task per slot, one thread per slot
-- Inter-task communication via thread-safe MPSC queue
-- Slots are static; no dynamic resizing
-
-### Tests
-
-- Simple pipeline (source → map → sink) runs end-to-end on multiple slots
-- Pipeline with parallelism > 1 produces correct results
-- Two-branch DAG (fan-out then fan-in)
-- Graceful shutdown completes all in-flight events
-
----
-
-## Phase 7: Engine B — Task-Stealing (Single-Node)
-
-**Depends on**: Phase 6
+Current state: `Compiler::compile(graph)` produces a `PhysicalOperator` chain, but lifecycle
+has to be managed manually (open → loop execute → close).
 
 ### Deliverables
 
 | Task | Files |
 |------|-------|
-| `StealingEngine` | `src/engine/stealing/stealing_engine.h` — implements `ExecutionEngine` |
-| `TaskQueue` | `src/engine/stealing/task_queue.h` — thread-safe multi-producer multi-consumer queue |
-| `Executor` | `src/engine/stealing/executor.h` — worker thread that pulls and runs tasks |
-| `PartitionGuard` | `src/engine/stealing/partition_guard.h` — prevents concurrent execution of same partition |
+| `Pipeline` class | `src/engine/pipeline.h` — wraps a `DataflowGraph`, compiles + runs lifecycle automatically |
 
-### Problem: Out-of-Order Output
+### Pipeline API
 
-Multiple executors consuming the same topic partition produce out-of-order output. Solution: `PartitionGuard`.
-Each partition has a lock/token. An executor must acquire it before processing that partition's next event. This serializes per-partition processing while allowing parallelism across partitions.
+```cpp
+class Pipeline {
+    // Construct and compile
+    Pipeline(DataflowGraph graph);
+    
+    // Run the entire pipeline: setup → open → execute all source events → close → terminate
+    void run();
+};
+```
 
 ### Design Constraints
 
-- Same interface as SlotEngine — drop-in replacement
-- Task queue uses work-stealing: idle executor steals from busy one
-- Event ordering within a partition is preserved; across partitions is not guaranteed
-- Graceful shutdown: poison-pill sentinel in queue
+- No threading: everything runs on the calling thread
+- No slots, no placement, no parallelism
+- Chain is compiled from `DataflowGraph` using `Compiler`
+- `run()` wraps the full lifecycle: `setup()` → `open()` → `execute(N)` → `close()` → `terminate()`
 
 ### Tests
 
-- Same end-to-end tests pass with StealingEngine
-- Same-partition events are processed in order
-- PartitionGuard prevents concurrent access to same partition
-- Work-stealing: idle executor picks up work from busy executor
+- Pipeline::run() executes a Source → Sink graph end-to-end
+- Pipeline::run() executes a Source → Map → Filter → Sink graph correctly
 
 ---
 
-## Phase 8: Advanced Operators
+## Phase 7: Engine A — Fixed-Slot (Deferred)
+
+**Depends on**: Phase 6 when parallelism/scalability is needed
+
+Single-threaded execution covers current needs. Engine A will add multi-threaded slot-based
+execution when we have multiple independent pipelines or stateful operators that require
+separate threads. See old Phase 7 in git history for delivery plan.
+
+---
+
+## Phase 8: Engine B — Task-Stealing (Deferred)
+
+**Depends on**: Phase 7 when implemented
+
+Planned for when parallelism is needed. See old Phase 8 in git history for details.
+
+---
+
+## Phase 9: Advanced Operators
 
 **Depends on**: Phase 5
 
@@ -357,39 +338,17 @@ mechanism deferred to Phase 9.
 
 ---
 
-## Phase 10: Placement Algorithms
+## Phase 10: Placement Algorithms (Deferred)
 
-**Depends on**: Phase 6, Phase 7
+**Depends on**: Phase 7, Phase 8 when both engines exist
 
-### Deliverables
-
-| Task | Files |
-|------|-------|
-| `PlacementStrategy` interface | `interfaces/placement_strategy.h` — `place(JobGraph, ClusterInfo) → PhysicalPlan` |
-| `GreedyPlacer` | `src/placement/greedy_placer.h` — refactored to implement `PlacementStrategy` |
-| `RoundRobinPlacer` | `src/placement/round_robin_placer.h` — simple baseline |
-| `ILPPlacer` | `src/placement/ilp_placer.h` — integer linear programming (use `ortools` or similar) |
-| `PlacementMetrics` | `src/placement/metrics.h` — network cost, load balance score, data locality |
-
-### Design Constraints
-
-- `PlacementStrategy` is the unified interface — all algorithms implement it
-- `ClusterInfo` describes available workers: slot count, memory, network topology
-- Placement result is validated: every task assigned, no slot overbooked
-- ILP solver is an optional dependency (CMake option `ENABLE_ILP`)
-
-### Tests
-
-- GreedyPlacer assigns all tasks without overbooking
-- RoundRobinPlacer distributes evenly
-- ILPPlacer produces feasible solution
-- PlacementStrategy can be swapped without changing engine code
+Placement makes sense only when we have multiple workers/nodes. See old Phase 10 in git history for delivery plan.
 
 ---
 
 ## Phase 11: Complex Topology Validation
 
-**Depends on**: Phase 8
+**Depends on**: Phase 9
 
 ### Deliverables
 
