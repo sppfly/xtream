@@ -20,6 +20,7 @@ add_executable(extream_tests
     util/log/logger_test.cpp
     functions/function_concepts_test.cpp
     operators/logical_operator_test.cpp
+    operators/physical_operator_test.cpp
 )
 target_link_libraries(extream_tests PRIVATE extream_core GTest::gtest GTest::gtest_main)
 
