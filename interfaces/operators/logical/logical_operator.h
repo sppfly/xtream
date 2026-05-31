@@ -8,6 +8,8 @@
 
 namespace extream {
 
+class PhysicalOperator;
+
 class LogicalOperator {
 public:
     template <typename T>
@@ -21,11 +23,13 @@ public:
     const std::string& name() const { return name_; }
     u64 parallelism() const { return parallelism_; }
     std::string_view type_name() const { return self_->type_name(); }
+    std::shared_ptr<PhysicalOperator> compile() const { return self_->compile(); }
 
 private:
     struct Concept {
         virtual ~Concept() = default;
         virtual std::string_view type_name() const = 0;
+        virtual std::shared_ptr<PhysicalOperator> compile() const = 0;
     };
 
     template <typename T>
@@ -33,6 +37,7 @@ private:
         T impl;
         explicit Model(T i) : impl(std::move(i)) {}
         std::string_view type_name() const override { return impl.type_name(); }
+        std::shared_ptr<PhysicalOperator> compile() const override { return impl.compile(); }
     };
 
     std::shared_ptr<const Concept> self_;

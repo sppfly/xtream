@@ -21,6 +21,7 @@ add_executable(extream_tests
     functions/function_concepts_test.cpp
     operators/logical_operator_test.cpp
     operators/physical_operator_test.cpp
+    engine/compiler_test.cpp
 )
 target_link_libraries(extream_tests PRIVATE extream_core GTest::gtest GTest::gtest_main)
 
