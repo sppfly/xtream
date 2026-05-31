@@ -246,19 +246,31 @@ class Pipeline {
 
 ## Phase 7: Engine A — Fixed-Slot (Deferred)
 
-**Depends on**: Phase 6 when parallelism/scalability is needed
+**When**: Single-threaded `Pipeline` becomes a bottleneck — e.g., multiple independent
+pipelines, or stateful operators needing separate threads.
 
-Single-threaded execution covers current needs. Engine A will add multi-threaded slot-based
-execution when we have multiple independent pipelines or stateful operators that require
-separate threads. See old Phase 7 in git history for delivery plan.
+**What it will do**:
+- `ExecutionEngine` interface: `submit(JobGraph)`, `execute()`, `cancel()`
+- `Slot` — a thread that runs one task at a time
+- `SlotManager` — pool of N slots
+- `SlotEngine` — assigns compiled `PhysicalOperator` chains to slots
+- `GreedyPlacer` — first-fit assignment of tasks to slots
+
+The `Pipeline` class (Phase 6) becomes a degenerate case of SlotEngine with one slot.
 
 ---
 
 ## Phase 8: Engine B — Task-Stealing (Deferred)
 
-**Depends on**: Phase 7 when implemented
+**When**: Engine A's fixed-slot model proves too rigid. Task-stealing improves resource
+utilization when tasks have uneven workloads.
 
-Planned for when parallelism is needed. See old Phase 8 in git history for details.
+**What it will do**:
+- `StealingEngine` — implements `ExecutionEngine`
+- `TaskQueue` — thread-safe MPSC queue of pending tasks
+- `Executor` — worker thread that pulls and runs tasks
+- `PartitionGuard` — ensures only one executor processes a given partition at a time
+  (preventing out-of-order output when multiple executors hit the same partition)
 
 ---
 
@@ -304,9 +316,9 @@ mechanism deferred to Phase 9.
 
 ---
 
-## Phase 9: Watermark Propagation + Trigger Framework
+## Phase 10: Watermark Propagation + Trigger Framework
 
-**Depends on**: Phase 8
+**Depends on**: Phase 9
 
 ### Deliverables
 
@@ -338,17 +350,22 @@ mechanism deferred to Phase 9.
 
 ---
 
-## Phase 10: Placement Algorithms (Deferred)
+## Phase 11: Placement Algorithms (Deferred)
 
-**Depends on**: Phase 7, Phase 8 when both engines exist
+**When**: Engine A exists and we have multiple workers/nodes.
 
-Placement makes sense only when we have multiple workers/nodes. See old Phase 10 in git history for delivery plan.
+**What it will do**:
+- `PlacementStrategy` interface: `place(JobGraph, ClusterInfo) → PhysicalPlan`
+- `GreedyPlacer` — first-fit, Flink-like
+- `RoundRobinPlacer` — simple baseline for comparison
+- `ILPPlacer` — uses ortools or similar for optimal placement
+- `PlacementMetrics` — network cost, load balance, data locality scoring
 
 ---
 
-## Phase 11: Complex Topology Validation
+## Phase 12: Complex Topology Validation
 
-**Depends on**: Phase 9
+**Depends on**: Phase 10
 
 ### Deliverables
 
@@ -367,8 +384,7 @@ Placement makes sense only when we have multiple workers/nodes. See old Phase 10
 
 ### Tests
 
-- Each topology runs correctly on both Engine A and Engine B
-- Correct output ordering within partitions
+- Each topology runs correctly on Pipeline (Phase 6), and later on Engine A/B
 - Watermark propagates correctly through complex DAGs
 - No deadlocks on fan-in with different input rates
 
@@ -376,4 +392,14 @@ Placement makes sense only when we have multiple workers/nodes. See old Phase 10
 
 ## Deferred: Distributed Runtime
 
-Not part of current plan. Will be designed after single-node architecture is fully validated.
+**When**: Single-node architecture is fully validated and we need multi-node execution.
+
+**What it will do**:
+- `NodeManager` — node discovery, registration, heartbeat
+- `TaskDispatcher` — remote task launching across workers
+- `RemoteChannel` — network-backed data channel (replaces in-process queue)
+- `Serialization` — wire format for events, watermarks, control messages
+- `JobClient` — CLI or library entrypoint for job submission
+- `Protocol` — RPC definitions (gRPC or custom)
+
+Workers can run different engine types as long as they implement the same `ExecutionEngine` interface.
