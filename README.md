@@ -16,14 +16,6 @@ This is not a production system. It is a testbed for experimenting with and vali
 
 **Every phase delivers testable code.** No phase produces only documentation or stubs. All code is covered by unit tests and built with ASan+UBSan.
 
-## Current State
-
-Phase 6 complete. The platform can:
-
-- Define operator DAGs with a fluent builder API
-- Compile logical operators to physical execution chains
-- Execute linear pipelines single-threaded (Source -> Map -> Filter -> Sink)
-- Handle source functions (callable that produces events) and sink functions (callable that processes events)
 
 ### Example
 
@@ -67,24 +59,6 @@ Formatting:
 ninja -C build format
 ```
 
-## Roadmap
-
-| Phase | Status | Description |
-|-------|--------|-------------|
-| 1 | Done | Infrastructure: strict types, logger, project skeleton |
-| 2 | Done | Core data model: Event, Watermark, StreamSchema, Record |
-| 3 | Done | Dataflow graph: DAG representation, cycle detection |
-| 4 | Done | Operator interfaces + simple operators (Map, Filter, Source, Sink) |
-| 5 | Done | Compilation bridge: DataflowGraph -> PhysicalOperator chain |
-| 6 | Done | Pipeline: single-threaded execution with lifecycle management |
-| 7 | Pending | Engine A: fixed-slot execution (Flink-like) |
-| 8 | Pending | Engine B: task-stealing execution |
-| 9 | Pending | Advanced operators: KeyBy, TumblingWindow, SlidingWindow, Reduce, Join |
-| 10 | Pending | Watermark propagation + trigger framework |
-| 11 | Pending | Placement algorithms (greedy, ILP) |
-| 12 | Pending | Complex topology validation (integration tests) |
-
-See [PLAN.md](./PLAN.md) for detailed phase specifications.
 
 ## Code Style
 
