@@ -6,7 +6,7 @@
 
 #include "core/id.h"
 
-namespace extream {
+namespace xtream {
 
 class PhysicalOperator;
 
@@ -46,4 +46,4 @@ private:
     u64 parallelism_;
 };
 
-}  // namespace extream
+}  // namespace xtream

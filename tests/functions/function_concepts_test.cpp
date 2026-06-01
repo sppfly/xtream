@@ -6,7 +6,7 @@
 #include "functions/source_function.h"
 #include "gtest/gtest.h"
 
-namespace extream {
+namespace xtream {
 namespace {
 
 struct BadMap {
@@ -98,4 +98,4 @@ TEST(SourceFunctionConcept, RejectedByWrongReturnType) {
 }
 
 }  // namespace
-}  // namespace extream
+}  // namespace xtream

@@ -1,4 +1,4 @@
-# Development Plan — Extream Stream Computing Platform
+# Development Plan — xtream Stream Computing Platform
 
 ## Strategy
 

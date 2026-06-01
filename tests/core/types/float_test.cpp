@@ -2,7 +2,7 @@
 
 #include <gtest/gtest.h>
 
-namespace extream {
+namespace xtream {
 namespace {
 
 TEST(F32Test, Construct) {
@@ -93,4 +93,4 @@ TEST(F32Test, Constexpr) {
 }
 
 }  // namespace
-}  // namespace extream
+}  // namespace xtream

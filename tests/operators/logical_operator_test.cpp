@@ -8,7 +8,7 @@
 #include "operators/logical/sink_logical_operator.h"
 #include "operators/logical/source_logical_operator.h"
 
-namespace extream {
+namespace xtream {
 namespace {
 
 TEST(LogicalOperatorTest, SourceTypeName) {
@@ -72,4 +72,4 @@ TEST(LogicalOperatorTest, IdRoundTrip) {
 }
 
 }  // namespace
-}  // namespace extream
+}  // namespace xtream

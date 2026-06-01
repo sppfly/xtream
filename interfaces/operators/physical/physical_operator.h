@@ -5,7 +5,7 @@
 #include "core/event.h"
 #include "core/record.h"
 
-namespace extream {
+namespace xtream {
 
 class PhysicalOperator {
 public:
@@ -24,4 +24,4 @@ protected:
     std::shared_ptr<PhysicalOperator> next_;
 };
 
-}  // namespace extream
+}  // namespace xtream

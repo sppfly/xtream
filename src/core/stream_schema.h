@@ -8,7 +8,7 @@
 
 #include "core/types/types.h"
 
-namespace extream {
+namespace xtream {
 
 enum class TypeKind : uint8_t { I32, I64, U32, U64, F32, F64, String };
 
@@ -43,4 +43,4 @@ private:
     std::vector<Field> fields_;
 };
 
-}  // namespace extream
+}  // namespace xtream

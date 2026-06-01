@@ -2,7 +2,7 @@
 
 #include <gtest/gtest.h>
 
-namespace extream {
+namespace xtream {
 namespace {
 
 TEST(StreamSchemaTest, EmptySchema) {
@@ -94,4 +94,4 @@ TEST(StreamSchemaTest, CompatibleEmptySchema) {
 }
 
 }  // namespace
-}  // namespace extream
+}  // namespace xtream

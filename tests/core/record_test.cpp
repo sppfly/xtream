@@ -4,7 +4,7 @@
 
 #include <memory>
 
-namespace extream {
+namespace xtream {
 namespace {
 
 static std::shared_ptr<StreamSchema> make_schema() {
@@ -98,4 +98,4 @@ TEST(RecordTest, FieldHasCorrectKind) {
 }
 
 }  // namespace
-}  // namespace extream
+}  // namespace xtream

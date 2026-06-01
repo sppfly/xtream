@@ -10,7 +10,7 @@
 #include "graph/stream_edge.h"
 #include "operators/logical/logical_operator.h"
 
-namespace extream {
+namespace xtream {
 
 class DataflowGraph {
 public:
@@ -152,4 +152,4 @@ private:
     std::vector<StreamEdge> edges_;
 };
 
-}  // namespace extream
+}  // namespace xtream

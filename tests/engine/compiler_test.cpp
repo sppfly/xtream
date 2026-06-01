@@ -14,7 +14,7 @@
 #include "operators/physical/sink_physical_operator.h"
 #include "operators/physical/source_physical_operator.h"
 
-namespace extream {
+namespace xtream {
 namespace {
 
 auto make_record(int v) -> Record {
@@ -141,4 +141,4 @@ TEST(CompilerTest, ExecuteWithFilter) {
 }
 
 }  // namespace
-}  // namespace extream
+}  // namespace xtream

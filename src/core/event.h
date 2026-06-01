@@ -7,7 +7,7 @@
 
 #include "core/types/types.h"
 
-namespace extream {
+namespace xtream {
 
 template <typename T>
 class Event {
@@ -35,4 +35,4 @@ private:
     std::unordered_map<std::string, std::string> metadata_;
 };
 
-}  // namespace extream
+}  // namespace xtream

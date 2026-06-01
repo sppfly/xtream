@@ -6,7 +6,7 @@
 #include "graph/dataflow_graph.h"
 #include "operators/physical/physical_operator.h"
 
-namespace extream {
+namespace xtream {
 
 class Compiler {
 public:
@@ -26,4 +26,4 @@ public:
     }
 };
 
-}  // namespace extream
+}  // namespace xtream

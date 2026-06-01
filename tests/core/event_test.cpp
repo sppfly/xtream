@@ -4,7 +4,7 @@
 
 #include <string>
 
-namespace extream {
+namespace xtream {
 namespace {
 
 TEST(EventTest, ConstructWithPayloadAndTimestamp) {
@@ -73,4 +73,4 @@ TEST(EventTest, DifferentPayloadTypes) {
 }
 
 }  // namespace
-}  // namespace extream
+}  // namespace xtream

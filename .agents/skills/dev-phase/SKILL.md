@@ -1,6 +1,6 @@
 ---
 name: dev-phase
-description: Standard workflow for completing a development phase in the Extream project — compile, test, format, and commit.
+description: Standard workflow for completing a development phase in the xtream project — compile, test, format, and commit.
 ---
 
 # Phase Completion Workflow

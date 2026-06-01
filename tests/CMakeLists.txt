@@ -7,7 +7,7 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
-add_executable(extream_tests
+add_executable(xtream_tests
     core/types/int_test.cpp
     core/types/uint_test.cpp
     core/types/float_test.cpp
@@ -24,16 +24,16 @@ add_executable(extream_tests
     engine/compiler_test.cpp
     engine/pipeline_test.cpp
 )
-target_link_libraries(extream_tests PRIVATE extream_core GTest::gtest GTest::gtest_main)
+target_link_libraries(xtream_tests PRIVATE xtream_core GTest::gtest GTest::gtest_main)
 
 if(ENABLE_ASAN)
-  target_compile_options(extream_tests PRIVATE -fsanitize=address)
-  target_link_options(extream_tests PRIVATE -fsanitize=address)
+  target_compile_options(xtream_tests PRIVATE -fsanitize=address)
+  target_link_options(xtream_tests PRIVATE -fsanitize=address)
 endif()
 if(ENABLE_UBSAN)
-  target_compile_options(extream_tests PRIVATE -fsanitize=undefined)
-  target_link_options(extream_tests PRIVATE -fsanitize=undefined)
+  target_compile_options(xtream_tests PRIVATE -fsanitize=undefined)
+  target_link_options(xtream_tests PRIVATE -fsanitize=undefined)
 endif()
 
 include(GoogleTest)
-gtest_discover_tests(extream_tests)
+gtest_discover_tests(xtream_tests)

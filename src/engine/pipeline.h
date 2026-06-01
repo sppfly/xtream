@@ -6,7 +6,7 @@
 #include "graph/dataflow_graph.h"
 #include "operators/physical/physical_operator.h"
 
-namespace extream {
+namespace xtream {
 
 class Pipeline {
 public:
@@ -43,4 +43,4 @@ private:
     std::shared_ptr<PhysicalOperator> root_;
 };
 
-}  // namespace extream
+}  // namespace xtream

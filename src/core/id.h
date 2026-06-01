@@ -9,7 +9,7 @@
 
 #include "core/types/types.h"
 
-namespace extream {
+namespace xtream {
 
 template <typename Tag>
 class Id {
@@ -30,11 +30,11 @@ using OperatorId = Id<OperatorTag>;
 struct EdgeTag {};
 using EdgeId = Id<EdgeTag>;
 
-}  // namespace extream
+}  // namespace xtream
 
 template <typename Tag>
-struct std::hash<extream::Id<Tag>> {
-    size_t operator()(const extream::Id<Tag>& id) const noexcept {
+struct std::hash<xtream::Id<Tag>> {
+    size_t operator()(const xtream::Id<Tag>& id) const noexcept {
         return std::hash<uint64_t>{}(id.raw().raw());
     }
 };

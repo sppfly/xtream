@@ -7,7 +7,7 @@
 #include <thread>
 #include <vector>
 
-namespace extream {
+namespace xtream {
 namespace {
 
 TEST(LoggerTest, SetAndGetLevel) {
@@ -54,4 +54,4 @@ TEST(LoggerTest, AllLevels) {
 }
 
 }  // namespace
-}  // namespace extream
+}  // namespace xtream

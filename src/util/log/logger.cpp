@@ -3,7 +3,7 @@
 #include <cstdio>
 #include <mutex>
 
-namespace extream {
+namespace xtream {
 
 Logger& Logger::instance() {
     static Logger logger;
@@ -61,4 +61,4 @@ void Logger::log(LogLevel lvl, std::string_view msg, std::source_location loc) {
                  static_cast<int>(msg.size()), msg.data());
 }
 
-}  // namespace extream
+}  // namespace xtream

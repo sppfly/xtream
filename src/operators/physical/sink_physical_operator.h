@@ -4,7 +4,7 @@
 
 #include "operators/physical/physical_operator.h"
 
-namespace extream {
+namespace xtream {
 
 class SinkPhysicalOperator : public PhysicalOperator {
 public:
@@ -22,4 +22,4 @@ private:
     Func func_;
 };
 
-}  // namespace extream
+}  // namespace xtream

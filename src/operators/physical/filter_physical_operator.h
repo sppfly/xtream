@@ -4,7 +4,7 @@
 
 #include "operators/physical/physical_operator.h"
 
-namespace extream {
+namespace xtream {
 
 class FilterPhysicalOperator : public PhysicalOperator {
 public:
@@ -28,4 +28,4 @@ private:
     Pred pred_;
 };
 
-}  // namespace extream
+}  // namespace xtream

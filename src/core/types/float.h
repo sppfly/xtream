@@ -2,7 +2,7 @@
 
 #include <compare>
 
-namespace extream {
+namespace xtream {
 
 class f32 {
 public:
@@ -76,4 +76,4 @@ private:
     double value_;
 };
 
-}  // namespace extream
+}  // namespace xtream

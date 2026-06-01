@@ -7,7 +7,7 @@
 
 #include "core/types/types.h"
 
-namespace extream {
+namespace xtream {
 
 enum class LogLevel { Trace = 0, Debug = 1, Info = 2, Warn = 3, Error = 4 };
 
@@ -32,4 +32,4 @@ private:
     std::mutex mutex_;
 };
 
-}  // namespace extream
+}  // namespace xtream

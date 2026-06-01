@@ -2,7 +2,7 @@
 
 #include <gtest/gtest.h>
 
-namespace extream {
+namespace xtream {
 namespace {
 
 TEST(WatermarkTest, ConstructWithTimestampAndSourceId) {
@@ -59,4 +59,4 @@ TEST(WatermarkTest, Copy) {
 }
 
 }  // namespace
-}  // namespace extream
+}  // namespace xtream

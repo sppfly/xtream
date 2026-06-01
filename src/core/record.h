@@ -8,7 +8,7 @@
 #include "core/stream_schema.h"
 #include "core/types/types.h"
 
-namespace extream {
+namespace xtream {
 
 class FieldValue {
 public:
@@ -123,4 +123,4 @@ private:
     std::vector<FieldValue> fields_;
 };
 
-}  // namespace extream
+}  // namespace xtream

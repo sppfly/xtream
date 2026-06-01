@@ -7,7 +7,7 @@
 #include <limits>
 #include <type_traits>
 
-namespace extream {
+namespace xtream {
 
 template <std::integral T>
 class StrictInt {
@@ -156,4 +156,4 @@ using i16 = StrictInt<int16_t>;
 using i32 = StrictInt<int32_t>;
 using i64 = StrictInt<int64_t>;
 
-}  // namespace extream
+}  // namespace xtream

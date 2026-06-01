@@ -4,7 +4,7 @@
 
 #include "core/types/uint.h"
 
-namespace extream {
+namespace xtream {
 namespace {
 
 TEST(I32Test, Construct) {
@@ -209,4 +209,4 @@ TEST(I32Test, Constexpr) {
 }
 
 }  // namespace
-}  // namespace extream
+}  // namespace xtream

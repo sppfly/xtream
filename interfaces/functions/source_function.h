@@ -2,11 +2,11 @@
 
 #include "core/event.h"
 
-namespace extream {
+namespace xtream {
 
 template <typename F, typename OUT>
 concept SourceFunction = requires(F& f) {
     { f() } -> std::convertible_to<Event<OUT>>;
 };
 
-}  // namespace extream
+}  // namespace xtream

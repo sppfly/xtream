@@ -16,7 +16,7 @@
 #include "operators/logical/sink_logical_operator.h"
 #include "operators/logical/source_logical_operator.h"
 
-namespace extream {
+namespace xtream {
 
 class DataflowGraphBuilder;
 
@@ -191,4 +191,4 @@ inline DataflowGraph StreamHandle::build() {
     return builder_.build();
 }
 
-}  // namespace extream
+}  // namespace xtream

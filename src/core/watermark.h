@@ -5,7 +5,7 @@
 
 #include "core/types/types.h"
 
-namespace extream {
+namespace xtream {
 
 class Watermark {
 public:
@@ -23,4 +23,4 @@ private:
     u64 source_id_;
 };
 
-}  // namespace extream
+}  // namespace xtream

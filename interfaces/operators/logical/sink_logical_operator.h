@@ -8,7 +8,7 @@
 #include "core/record.h"
 #include "operators/physical/sink_physical_operator.h"
 
-namespace extream {
+namespace xtream {
 
 class SinkLogicalOperator {
 public:
@@ -27,4 +27,4 @@ private:
     Func func_;
 };
 
-}  // namespace extream
+}  // namespace xtream

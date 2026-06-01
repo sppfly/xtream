@@ -4,7 +4,7 @@
 #include "operators/logical/sink_logical_operator.h"
 #include "operators/logical/source_logical_operator.h"
 
-namespace extream {
+namespace xtream {
 namespace {
 
 auto noop_source() -> Event<Record> {
@@ -183,4 +183,4 @@ TEST(DataflowGraphTest, TopologicalOrderDiamond) {
 }
 
 }  // namespace
-}  // namespace extream
+}  // namespace xtream

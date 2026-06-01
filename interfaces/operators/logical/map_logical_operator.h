@@ -8,7 +8,7 @@
 #include "core/record.h"
 #include "operators/physical/map_physical_operator.h"
 
-namespace extream {
+namespace xtream {
 
 class MapLogicalOperator {
 public:
@@ -27,4 +27,4 @@ private:
     Func func_;
 };
 
-}  // namespace extream
+}  // namespace xtream

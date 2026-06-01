@@ -8,7 +8,7 @@
 #include "operators/logical/sink_logical_operator.h"
 #include "operators/logical/source_logical_operator.h"
 
-namespace extream {
+namespace xtream {
 namespace {
 
 auto make_record(int v) -> Record {
@@ -71,4 +71,4 @@ TEST(PipelineTest, SourceMapFilterSink) {
 }
 
 }  // namespace
-}  // namespace extream
+}  // namespace xtream

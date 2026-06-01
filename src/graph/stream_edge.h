@@ -4,7 +4,7 @@
 
 #include "core/id.h"
 
-namespace extream {
+namespace xtream {
 
 enum class EdgePartition : uint8_t { Forward, Keyed, Broadcast };
 
@@ -25,4 +25,4 @@ private:
     EdgePartition partition_;
 };
 
-}  // namespace extream
+}  // namespace xtream

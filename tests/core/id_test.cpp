@@ -6,7 +6,7 @@
 #include <type_traits>
 #include <unordered_set>
 
-namespace extream {
+namespace xtream {
 namespace {
 
 struct OperatorTag {};
@@ -81,4 +81,4 @@ TEST(IdTest, UsedInUnorderedSet) {
 }
 
 }  // namespace
-}  // namespace extream
+}  // namespace xtream
