@@ -3,16 +3,39 @@
 #include <cassert>
 #include <cstdint>
 #include <deque>
-#include <optional>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 #include "graph/dataflow_graph.h"
 #include "graph/stream_edge.h"
+#include "operators/logical/filter_logical_operator.h"
 #include "operators/logical/logical_operator.h"
+#include "operators/logical/map_logical_operator.h"
+#include "operators/logical/sink_logical_operator.h"
+#include "operators/logical/source_logical_operator.h"
 
 namespace extream {
+
+class DataflowGraphBuilder;
+
+class StreamHandle {
+public:
+    StreamHandle(DataflowGraphBuilder& builder, OperatorId id) : builder_(builder), id_(id) {}
+
+    StreamHandle map(MapLogicalOperator::Func func);
+    StreamHandle filter(FilterLogicalOperator::Func func);
+    StreamHandle sink(SinkLogicalOperator::Func func);
+
+    DataflowGraph build();
+
+    OperatorId id() const { return id_; }
+
+private:
+    DataflowGraphBuilder& builder_;
+    OperatorId id_;
+};
 
 class ValidationResult {
 public:
@@ -33,20 +56,21 @@ private:
 };
 
 class DataflowGraphBuilder {
-public:
-    DataflowGraphBuilder() : next_operator_id_(0), next_edge_id_(0) {}
+    friend class StreamHandle;
 
-    template <typename T>
-    OperatorId add_operator(std::string name, u64 parallelism, T impl) {
-        auto id = OperatorId(u64(next_operator_id_++));
-        operators_.emplace_back(id, std::move(name), parallelism, std::move(impl));
-        return id;
+public:
+    DataflowGraphBuilder() = default;
+
+    StreamHandle source(SourceLogicalOperator::Func func) {
+        auto id = next_id();
+        operators_.emplace_back(id, "source", u64(1), SourceLogicalOperator(std::move(func)));
+        return StreamHandle(*this, id);
     }
 
-    EdgeId add_edge(OperatorId source, OperatorId target, EdgePartition partition) {
-        auto id = EdgeId(u64(next_edge_id_++));
-        edges_.emplace_back(id, source, target, partition);
-        return id;
+    DataflowGraph build() const {
+        auto result = validate();
+        assert(result.is_ok());
+        return DataflowGraph(operators_, edges_);
     }
 
     ValidationResult validate() const {
@@ -64,13 +88,16 @@ public:
         return ValidationResult::ok();
     }
 
-    DataflowGraph build() const {
-        auto result = validate();
-        assert(result.is_ok());
-        return DataflowGraph(operators_, edges_);
+private:
+    OperatorId next_id() { return OperatorId(u64(counter_++)); }
+
+    void add_operator(LogicalOperator op) { operators_.push_back(std::move(op)); }
+
+    void add_edge(OperatorId from, OperatorId to, EdgePartition partition) {
+        auto id = EdgeId(u64(edge_counter_++));
+        edges_.emplace_back(id, from, to, partition);
     }
 
-private:
     ValidationResult check_no_cycles() const {
         std::unordered_map<OperatorId, std::vector<OperatorId>> adjacency;
         for (const auto& op : operators_) {
@@ -131,10 +158,37 @@ private:
         return ValidationResult::ok();
     }
 
-    uint64_t next_operator_id_;
-    uint64_t next_edge_id_;
+    uint64_t counter_ = 1;
+    uint64_t edge_counter_ = 0;
     std::vector<LogicalOperator> operators_;
     std::vector<StreamEdge> edges_;
 };
+
+inline StreamHandle StreamHandle::map(MapLogicalOperator::Func func) {
+    auto id = builder_.next_id();
+    builder_.add_operator(LogicalOperator(id, "map", u64(1), MapLogicalOperator(std::move(func))));
+    builder_.add_edge(id_, id, EdgePartition::Forward);
+    return StreamHandle(builder_, id);
+}
+
+inline StreamHandle StreamHandle::filter(FilterLogicalOperator::Func func) {
+    auto id = builder_.next_id();
+    builder_.add_operator(
+        LogicalOperator(id, "filter", u64(1), FilterLogicalOperator(std::move(func))));
+    builder_.add_edge(id_, id, EdgePartition::Forward);
+    return StreamHandle(builder_, id);
+}
+
+inline StreamHandle StreamHandle::sink(SinkLogicalOperator::Func func) {
+    auto id = builder_.next_id();
+    builder_.add_operator(
+        LogicalOperator(id, "sink", u64(1), SinkLogicalOperator(std::move(func))));
+    builder_.add_edge(id_, id, EdgePartition::Forward);
+    return StreamHandle(builder_, id);
+}
+
+inline DataflowGraph StreamHandle::build() {
+    return builder_.build();
+}
 
 }  // namespace extream
