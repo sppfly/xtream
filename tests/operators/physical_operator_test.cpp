@@ -2,10 +2,10 @@
 
 #include <memory>
 
-#include "operators/physical/collect_sink_physical_operator.h"
-#include "operators/physical/collection_source_physical_operator.h"
 #include "operators/physical/filter_physical_operator.h"
 #include "operators/physical/map_physical_operator.h"
+#include "operators/physical/sink_physical_operator.h"
+#include "operators/physical/source_physical_operator.h"
 
 namespace extream {
 namespace {
@@ -31,14 +31,16 @@ TEST(MapPhysicalTest, TransformsEvent) {
         auto val = make_value_extractor()(e);
         return make_event(val + u64(1));
     });
-    auto sink = std::make_shared<CollectSinkPhysicalOperator>();
+    std::vector<Event<Record>> collected;
+    auto sink = std::make_shared<SinkPhysicalOperator>(
+        [&collected](Event<Record>& e) { collected.push_back(e); });
     map->set_next(sink);
 
     auto event = make_event(u64(42));
     map->execute(event);
 
-    ASSERT_EQ(sink->collected().size(), 1u);
-    EXPECT_EQ(make_value_extractor()(sink->collected()[0]), u64(43));
+    ASSERT_EQ(collected.size(), 1u);
+    EXPECT_EQ(make_value_extractor()(collected[0]), u64(43));
 }
 
 TEST(MapPhysicalTest, MultipleEvents) {
@@ -46,7 +48,9 @@ TEST(MapPhysicalTest, MultipleEvents) {
         auto val = make_value_extractor()(e);
         return make_event(val * u64(2));
     });
-    auto sink = std::make_shared<CollectSinkPhysicalOperator>();
+    std::vector<Event<Record>> collected;
+    auto sink = std::make_shared<SinkPhysicalOperator>(
+        [&collected](Event<Record>& e) { collected.push_back(e); });
     map->set_next(sink);
 
     for (u64 i : {u64(1), u64(2), u64(3)}) {
@@ -54,16 +58,18 @@ TEST(MapPhysicalTest, MultipleEvents) {
         map->execute(event);
     }
 
-    ASSERT_EQ(sink->collected().size(), 3u);
-    EXPECT_EQ(make_value_extractor()(sink->collected()[0]), u64(2));
-    EXPECT_EQ(make_value_extractor()(sink->collected()[1]), u64(4));
-    EXPECT_EQ(make_value_extractor()(sink->collected()[2]), u64(6));
+    ASSERT_EQ(collected.size(), 3u);
+    EXPECT_EQ(make_value_extractor()(collected[0]), u64(2));
+    EXPECT_EQ(make_value_extractor()(collected[1]), u64(4));
+    EXPECT_EQ(make_value_extractor()(collected[2]), u64(6));
 }
 
 TEST(FilterPhysicalTest, PassesMatchingEvents) {
     auto filter = std::make_shared<FilterPhysicalOperator>(
         [](Event<Record>& e) -> bool { return make_value_extractor()(e) > u64(10); });
-    auto sink = std::make_shared<CollectSinkPhysicalOperator>();
+    std::vector<Event<Record>> collected;
+    auto sink = std::make_shared<SinkPhysicalOperator>(
+        [&collected](Event<Record>& e) { collected.push_back(e); });
     filter->set_next(sink);
 
     auto e1 = make_event(u64(5));
@@ -71,14 +77,16 @@ TEST(FilterPhysicalTest, PassesMatchingEvents) {
     filter->execute(e1);
     filter->execute(e2);
 
-    ASSERT_EQ(sink->collected().size(), 1u);
-    EXPECT_EQ(make_value_extractor()(sink->collected()[0]), u64(15));
+    ASSERT_EQ(collected.size(), 1u);
+    EXPECT_EQ(make_value_extractor()(collected[0]), u64(15));
 }
 
 TEST(FilterPhysicalTest, DropsAllBelowThreshold) {
     auto filter = std::make_shared<FilterPhysicalOperator>(
         [](Event<Record>& e) -> bool { return make_value_extractor()(e) > u64(10); });
-    auto sink = std::make_shared<CollectSinkPhysicalOperator>();
+    std::vector<Event<Record>> collected;
+    auto sink = std::make_shared<SinkPhysicalOperator>(
+        [&collected](Event<Record>& e) { collected.push_back(e); });
     filter->set_next(sink);
 
     for (u64 i : {u64(1), u64(3), u64(5), u64(7)}) {
@@ -86,13 +94,19 @@ TEST(FilterPhysicalTest, DropsAllBelowThreshold) {
         filter->execute(event);
     }
 
-    EXPECT_TRUE(sink->collected().empty());
+    EXPECT_TRUE(collected.empty());
 }
 
-TEST(CollectionSourceTest, EmitsAllEvents) {
-    auto data = std::vector{make_event(u64(10)), make_event(u64(20)), make_event(u64(30))};
-    auto source = std::make_shared<CollectionSourcePhysicalOperator>(data);
-    auto sink = std::make_shared<CollectSinkPhysicalOperator>();
+TEST(SourcePhysicalTest, EmitsEventsFromFunction) {
+    std::vector<Event<Record>> collected;
+    auto sink = std::make_shared<SinkPhysicalOperator>(
+        [&collected](Event<Record>& e) { collected.push_back(e); });
+
+    std::vector<Event<Record>> data = {make_event(u64(10)), make_event(u64(20)),
+                                       make_event(u64(30))};
+    size_t idx = 0;
+    auto source = std::make_shared<SourcePhysicalOperator>(
+        [&data, &idx]() -> Event<Record> { return data[idx++]; });
     source->set_next(sink);
 
     source->open();
@@ -102,15 +116,21 @@ TEST(CollectionSourceTest, EmitsAllEvents) {
     }
     source->close();
 
-    ASSERT_EQ(sink->collected().size(), 3u);
-    EXPECT_EQ(make_value_extractor()(sink->collected()[0]), u64(10));
-    EXPECT_EQ(make_value_extractor()(sink->collected()[2]), u64(30));
+    ASSERT_EQ(collected.size(), 3u);
+    EXPECT_EQ(make_value_extractor()(collected[0]), u64(10));
+    EXPECT_EQ(make_value_extractor()(collected[2]), u64(30));
 }
 
 TEST(ChainTest, SourceToSink) {
-    auto data = std::vector{make_event(u64(5)), make_event(u64(10)), make_event(u64(15))};
-    auto source = std::make_shared<CollectionSourcePhysicalOperator>(data);
-    auto sink = std::make_shared<CollectSinkPhysicalOperator>();
+    std::vector<Event<Record>> collected;
+    auto sink = std::make_shared<SinkPhysicalOperator>(
+        [&collected](Event<Record>& e) { collected.push_back(e); });
+
+    std::vector<Event<Record>> data = {make_event(u64(5)), make_event(u64(10)),
+                                       make_event(u64(15))};
+    size_t idx = 0;
+    auto source = std::make_shared<SourcePhysicalOperator>(
+        [&data, &idx]() -> Event<Record> { return data[idx++]; });
     source->set_next(sink);
 
     source->open();
@@ -120,21 +140,26 @@ TEST(ChainTest, SourceToSink) {
     }
     source->close();
 
-    ASSERT_EQ(sink->collected().size(), 3u);
+    ASSERT_EQ(collected.size(), 3u);
 }
 
 TEST(ChainTest, SourceMapFilterSink) {
-    auto data =
-        std::vector{make_event(u64(1)), make_event(u64(2)), make_event(u64(3)), make_event(u64(4))};
+    std::vector<Event<Record>> collected;
+    auto sink = std::make_shared<SinkPhysicalOperator>(
+        [&collected](Event<Record>& e) { collected.push_back(e); });
 
-    auto source = std::make_shared<CollectionSourcePhysicalOperator>(data);
+    auto filter = std::make_shared<FilterPhysicalOperator>(
+        [](Event<Record>& e) { return make_value_extractor()(e) > u64(20); });
     auto map = std::make_shared<MapPhysicalOperator>([](Event<Record>& e) {
         auto val = make_value_extractor()(e);
         return make_event(val * u64(10));
     });
-    auto filter = std::make_shared<FilterPhysicalOperator>(
-        [](Event<Record>& e) { return make_value_extractor()(e) > u64(20); });
-    auto sink = std::make_shared<CollectSinkPhysicalOperator>();
+
+    std::vector<Event<Record>> data = {make_event(u64(1)), make_event(u64(2)), make_event(u64(3)),
+                                       make_event(u64(4))};
+    size_t idx = 0;
+    auto source = std::make_shared<SourcePhysicalOperator>(
+        [&data, &idx]() -> Event<Record> { return data[idx++]; });
 
     source->set_next(map);
     map->set_next(filter);
@@ -147,9 +172,9 @@ TEST(ChainTest, SourceMapFilterSink) {
     }
     source->close();
 
-    ASSERT_EQ(sink->collected().size(), 2u);
-    EXPECT_EQ(make_value_extractor()(sink->collected()[0]), u64(30));
-    EXPECT_EQ(make_value_extractor()(sink->collected()[1]), u64(40));
+    ASSERT_EQ(collected.size(), 2u);
+    EXPECT_EQ(make_value_extractor()(collected[0]), u64(30));
+    EXPECT_EQ(make_value_extractor()(collected[1]), u64(40));
 }
 
 TEST(LifecycleTest, Ordering) {

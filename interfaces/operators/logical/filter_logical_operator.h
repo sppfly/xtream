@@ -10,11 +10,11 @@
 
 namespace extream {
 
-class FilterLogicalOperatorImpl {
+class FilterLogicalOperator {
 public:
     using Func = std::function<bool(Event<Record>&)>;
 
-    explicit FilterLogicalOperatorImpl(Func func) : func_(std::move(func)) {}
+    explicit FilterLogicalOperator(Func func) : func_(std::move(func)) {}
 
     std::string_view type_name() const { return "Filter"; }
     const Func& function() const { return func_; }

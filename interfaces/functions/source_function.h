@@ -4,14 +4,9 @@
 
 namespace extream {
 
-template <typename OUT>
-struct SourceEmitter {
-    void emit(Event<OUT> event);
-};
-
 template <typename F, typename OUT>
-concept SourceFunction = requires(F& f, SourceEmitter<OUT>& emitter) {
-    { f(emitter) } -> std::same_as<void>;
+concept SourceFunction = requires(F& f) {
+    { f() } -> std::convertible_to<Event<OUT>>;
 };
 
 }  // namespace extream

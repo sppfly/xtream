@@ -10,11 +10,11 @@
 
 namespace extream {
 
-class MapLogicalOperatorImpl {
+class MapLogicalOperator {
 public:
     using Func = std::function<Event<Record>(Event<Record>&)>;
 
-    explicit MapLogicalOperatorImpl(Func func) : func_(std::move(func)) {}
+    explicit MapLogicalOperator(Func func) : func_(std::move(func)) {}
 
     std::string_view type_name() const { return "Map"; }
     const Func& function() const { return func_; }

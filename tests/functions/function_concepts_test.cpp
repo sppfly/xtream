@@ -77,15 +77,15 @@ TEST(SinkFunctionConcept, RejectedByWrongReturnType) {
 }
 
 struct BadSource {
-    auto operator()(SourceEmitter<int>&) -> int { return 0; }
+    auto operator()() -> int { return 0; }
 };
 
 struct GoodSource {
-    void operator()(SourceEmitter<int>& emitter) { emitter.emit(Event<int>(42, i64(1000))); }
+    auto operator()() -> Event<int> { return Event<int>(42, i64(1000)); }
 };
 
 TEST(SourceFunctionConcept, SatisfiedByCorrectLambda) {
-    auto lambda = [](SourceEmitter<int>& emitter) -> void { emitter.emit(Event<int>(1, i64(0))); };
+    auto lambda = []() -> Event<int> { return Event<int>(1, i64(0)); };
     static_assert(SourceFunction<decltype(lambda), int>);
 }
 
