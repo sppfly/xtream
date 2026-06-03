@@ -76,4 +76,11 @@ private:
     double value_;
 };
 
+constexpr f32 operator""_f32(long double v) {
+    return f32(static_cast<float>(v));
+}
+constexpr f64 operator""_f64(long double v) {
+    return f64(static_cast<double>(v));
+}
+
 }  // namespace xtream

@@ -1,8 +1,10 @@
 #include "engine/slot_engine.h"
 
+#include "core/types/types.h"
+
 namespace xtream {
 
-SlotEngine::SlotEngine(size_t slot_count) : slot_manager_(slot_count) {}
+SlotEngine::SlotEngine(usize slot_count) : slot_manager_(slot_count) {}
 
 void SlotEngine::submit(DataflowGraph graph) {
     Pipeline pipeline(std::move(graph));
@@ -12,15 +14,15 @@ void SlotEngine::submit(DataflowGraph graph) {
 void SlotEngine::execute() {
     running_ = true;
 
-    for (size_t i = 0; i < pipelines_.size() && i < slot_manager_.slot_count(); ++i) {
-        slot_manager_.get_slot(i).assign(std::move(pipelines_[i]));
+    for (usize i{0_usize}; i < usize{pipelines_.size()} && i < slot_manager_.slot_count(); ++i) {
+        slot_manager_.get_slot(i).assign(std::move(pipelines_[i.raw()]));
     }
 
     slot_manager_.start_all();
 
     while (running_) {
         bool all_done = true;
-        for (size_t i = 0; i < slot_manager_.slot_count(); ++i) {
+        for (usize i{0_usize}; i < slot_manager_.slot_count(); ++i) {
             if (slot_manager_.get_slot(i).is_running()) {
                 all_done = false;
                 break;

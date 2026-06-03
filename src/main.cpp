@@ -44,7 +44,7 @@ int main() {
 
     std::cout << "Starting SlotEngine with 1 slot..." << std::endl;
 
-    SlotEngine engine(1);
+    SlotEngine engine(1_usize);
     engine.submit(std::move(graph));
     engine.execute();
 

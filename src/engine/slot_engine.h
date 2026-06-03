@@ -3,6 +3,7 @@
 #include <atomic>
 #include <vector>
 
+#include "core/types/types.h"
 #include "engine/execution_engine.h"
 #include "engine/pipeline.h"
 #include "engine/slot_manager.h"
@@ -11,7 +12,7 @@ namespace xtream {
 
 class SlotEngine : public ExecutionEngine {
 public:
-    explicit SlotEngine(size_t slot_count);
+    explicit SlotEngine(usize slot_count);
 
     void submit(DataflowGraph graph) override;
     void execute() override;

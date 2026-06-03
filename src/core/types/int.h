@@ -156,4 +156,17 @@ using i16 = StrictInt<int16_t>;
 using i32 = StrictInt<int32_t>;
 using i64 = StrictInt<int64_t>;
 
+constexpr i8 operator""_i8(unsigned long long v) {
+    return i8(static_cast<int8_t>(v));
+}
+constexpr i16 operator""_i16(unsigned long long v) {
+    return i16(static_cast<int16_t>(v));
+}
+constexpr i32 operator""_i32(unsigned long long v) {
+    return i32(static_cast<int32_t>(v));
+}
+constexpr i64 operator""_i64(unsigned long long v) {
+    return i64(static_cast<int64_t>(v));
+}
+
 }  // namespace xtream

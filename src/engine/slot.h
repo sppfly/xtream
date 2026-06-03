@@ -2,7 +2,6 @@
 
 #include <atomic>
 #include <memory>
-#include <stop_token>
 #include <thread>
 
 #include "engine/pipeline.h"

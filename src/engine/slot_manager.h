@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstddef>
 #include <memory>
 #include <vector>
 
@@ -10,10 +9,10 @@ namespace xtream {
 
 class SlotManager {
 public:
-    explicit SlotManager(size_t slot_count);
+    explicit SlotManager(usize slot_count);
 
-    Slot& get_slot(size_t index);
-    size_t slot_count() const { return slots_.size(); }
+    Slot& get_slot(usize index);
+    usize slot_count() const { return usize{slots_.size()}; }
     void start_all();
     void stop_all();
 

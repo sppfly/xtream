@@ -6,6 +6,7 @@
 #include <thread>
 #include <vector>
 
+#include "core/types/types.h"
 #include "engine/pipeline.h"
 #include "graph/dataflow_graph_builder.h"
 #include "operators/logical/sink_logical_operator.h"
@@ -23,8 +24,8 @@ auto make_record(int v) -> Record {
 }
 
 TEST(SlotManagerTest, CreateMultipleSlots) {
-    SlotManager manager(3);
-    EXPECT_EQ(manager.slot_count(), 3u);
+    SlotManager manager(3_usize);
+    EXPECT_EQ(manager.slot_count(), 3_usize);
 }
 
 TEST(SlotManagerTest, AssignAndStartMultipleSlots) {
@@ -43,15 +44,15 @@ TEST(SlotManagerTest, AssignAndStartMultipleSlots) {
             .build();
     };
 
-    SlotManager manager(3);
+    SlotManager manager(3_usize);
     for (int i = 0; i < 3; ++i) {
         Pipeline pipeline(create_graph(i, results[i]));
-        manager.get_slot(i).assign(std::move(pipeline));
+        manager.get_slot(usize{static_cast<uint64_t>(i)}).assign(std::move(pipeline));
     }
 
     manager.start_all();
 
-    for (size_t i = 0; i < manager.slot_count(); ++i) {
+    for (usize i{0_usize}; i < manager.slot_count(); ++i) {
         while (manager.get_slot(i).is_running()) {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }

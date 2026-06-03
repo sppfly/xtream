@@ -7,6 +7,7 @@
 #include <thread>
 #include <vector>
 
+#include "core/types/types.h"
 #include "graph/dataflow_graph_builder.h"
 #include "operators/logical/sink_logical_operator.h"
 #include "operators/logical/source_logical_operator.h"
@@ -37,7 +38,7 @@ TEST(SlotEngineTest, SingleQuery) {
                      .sink([&collected](Event<Record>& e) { collected.push_back(e); })
                      .build();
 
-    SlotEngine engine(1);
+    SlotEngine engine(1_usize);
     engine.submit(std::move(graph));
 
     std::thread engine_thread([&engine]() { engine.execute(); });
@@ -63,7 +64,7 @@ TEST(SlotEngineTest, MultipleQueries) {
             .build();
     };
 
-    SlotEngine engine(3);
+    SlotEngine engine(3_usize);
     for (int i = 0; i < 3; ++i) {
         engine.submit(create_graph(i, results[i]));
     }
@@ -88,7 +89,7 @@ TEST(SlotEngineTest, CancelExecution) {
                      .sink([](Event<Record>&) {})
                      .build();
 
-    SlotEngine engine(1);
+    SlotEngine engine(1_usize);
     engine.submit(std::move(graph));
 
     std::thread engine_thread([&engine]() { engine.execute(); });

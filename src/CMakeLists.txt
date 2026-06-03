@@ -6,7 +6,6 @@ add_library(xtream_core STATIC
 )
 target_include_directories(xtream_core PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_SOURCE_DIR}/interfaces
 )
 
 add_executable(xtream main.cpp)
