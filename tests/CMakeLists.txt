@@ -23,6 +23,9 @@ add_executable(xtream_tests
     operators/physical_operator_test.cpp
     engine/compiler_test.cpp
     engine/pipeline_test.cpp
+    engine/slot_test.cpp
+    engine/slot_manager_test.cpp
+    engine/slot_engine_test.cpp
 )
 target_link_libraries(xtream_tests PRIVATE xtream_core GTest::gtest GTest::gtest_main)
 

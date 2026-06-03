@@ -16,6 +16,7 @@ public:
     virtual void execute(Event<Record>& record) = 0;
     virtual void close() = 0;
     virtual void terminate() = 0;
+    virtual bool is_done() const { return false; }
 
     void set_next(std::shared_ptr<PhysicalOperator> next) { next_ = std::move(next); }
     std::shared_ptr<PhysicalOperator> next() const { return next_; }

@@ -307,6 +307,25 @@ mechanism deferred to Phase 9.
 - Window operators hold state in-memory; trigger/watermark driving added in Phase 9
 - `JoinPhysicalOperator` is a non-cascadable operator (two-input, stateful)
 
+### Required Abstraction: InputChannel
+
+Window operators are blocking — they buffer events until the window closes. This means the graph must be split into multiple Pipelines at the window boundary:
+
+```
+Source → Map → [InputChannel] → Window → Filter → Sink
+
+Pipeline 0: Source → Map → (writes to InputChannel)
+Pipeline 1: (reads from InputChannel) → Window → Filter → Sink
+```
+
+We need an `InputChannel` abstraction:
+- Thread-safe queue between Pipelines
+- Downstream Pipeline reads from it (blocking or polling)
+- Upstream Pipeline writes to it via Sink operator
+- This replaces the need for a Source operator in downstream Pipelines
+
+Without this, there's no way for a Pipeline without a Source to receive events from upstream.
+
 ### Tests
 
 - Tumbling window buffers events correctly

@@ -12,7 +12,7 @@ namespace xtream {
 
 class SourceLogicalOperator {
 public:
-    using Func = std::function<Event<Record>()>;
+    using Func = std::function<std::optional<Event<Record>>()>;
 
     explicit SourceLogicalOperator(Func func) : func_(std::move(func)) {}
 

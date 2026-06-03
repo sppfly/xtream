@@ -28,7 +28,7 @@ TEST(PipelineTest, SourceToSink) {
     int counter = 0;
 
     auto graph = DataflowGraphBuilder()
-                     .source([&counter]() -> Event<Record> {
+                     .source([&counter]() -> std::optional<Event<Record>> {
                          ++counter;
                          return Event<Record>(make_record(counter), i64(counter));
                      })
@@ -50,7 +50,7 @@ TEST(PipelineTest, SourceMapFilterSink) {
 
     auto graph =
         DataflowGraphBuilder()
-            .source([&counter]() -> Event<Record> {
+            .source([&counter]() -> std::optional<Event<Record>> {
                 ++counter;
                 return Event<Record>(make_record(counter), i64(0));
             })
