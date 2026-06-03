@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <memory>
+#include <stop_token>
 #include <thread>
 
 #include "engine/pipeline.h"
@@ -11,7 +12,6 @@ namespace xtream {
 class Slot {
 public:
     Slot() = default;
-    ~Slot();
 
     Slot(const Slot&) = delete;
     Slot& operator=(const Slot&) = delete;
@@ -25,7 +25,7 @@ private:
     void run();
 
     std::unique_ptr<Pipeline> pipeline_;
-    std::thread thread_;
+    std::jthread thread_;
     std::atomic<bool> running_{false};
 };
 
