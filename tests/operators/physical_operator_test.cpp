@@ -18,7 +18,7 @@ auto make_record(u64 value) -> Record {
     return record;
 }
 
-auto make_event(u64 value, i64 ts = i64(0)) -> Event<Record> {
+auto make_event(u64 value, u64 ts = u64(0)) -> Event<Record> {
     return Event<Record>(make_record(value), ts);
 }
 

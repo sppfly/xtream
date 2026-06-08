@@ -33,7 +33,6 @@ enable_testing()
 file(GLOB_RECURSE FORMAT_SOURCES CONFIGURE_DEPENDS
     ${CMAKE_SOURCE_DIR}/src/*.cpp
     ${CMAKE_SOURCE_DIR}/src/*.h
-    ${CMAKE_SOURCE_DIR}/include/*.h
     ${CMAKE_SOURCE_DIR}/tests/*.cpp
     ${CMAKE_SOURCE_DIR}/tests/*.h
 )
@@ -43,4 +42,10 @@ add_custom_target(format
 )
 
 add_subdirectory(src)
-add_subdirectory(tests)
+add_subdirectory(tests EXCLUDE_FROM_ALL)
+
+add_custom_target(check
+    COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
+    DEPENDS xtream_tests
+    COMMENT "Running tests"
+)

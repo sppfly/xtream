@@ -4,6 +4,8 @@
 
 #include "core/event.h"
 #include "core/record.h"
+#include "core/types/window_spec.h"
+#include "engine/execution_graph.h"
 #include "engine/slot_engine.h"
 #include "graph/dataflow_graph_builder.h"
 
@@ -17,35 +19,43 @@ auto make_record(int v) -> Record {
     return record;
 }
 
-auto value_of(const Event<Record>& e) -> int {
-    return e.payload().field(0).as_i32().raw();
-}
-
 int main() {
     int counter = 0;
 
-    auto graph = DataflowGraphBuilder()
-                     .source([&counter]() -> std::optional<Event<Record>> {
-                         ++counter;
-                         if (counter > 10) {
-                             return std::nullopt;
-                         }
-                         return Event<Record>(make_record(counter), i64(counter));
-                     })
-                     .map([](Event<Record>& e) -> Event<Record> {
-                         return Event<Record>(make_record(value_of(e) * 2), e.timestamp());
-                     })
-                     .filter([](Event<Record>& e) -> bool { return value_of(e) > 10; })
-                     .sink([](Event<Record>& e) {
-                         std::cout << "output: " << value_of(e) << " (ts=" << e.timestamp().raw()
-                                   << ")" << std::endl;
-                     })
-                     .build();
+    auto graph =
+        DataflowGraphBuilder()
+            .source([&counter]() -> std::optional<Event<Record>> {
+                ++counter;
+                if (counter > 15) {
+                    return std::nullopt;
+                }
+                return Event<Record>(make_record(counter), u64(static_cast<uint64_t>(counter)));
+            })
+            .map([](Event<Record>& e) -> Event<Record> {
+                int raw = e.payload().field(0).as_i32().raw();
+                return Event<Record>(make_record(raw * 2), e.timestamp());
+            })
+            .window(count_tumbling_window(5_usize))
+            .reduce([](const std::vector<Event<Record>>& events) -> Event<Record> {
+                int sum = 0;
+                for (const auto& e : events) {
+                    sum += e.payload().field(0).as_i32().raw();
+                }
+                return Event<Record>(make_record(sum), events.back().timestamp());
+            })
+            .sink([](Event<Record>& e) {
+                std::cout << "window sum: " << e.payload().field(0).as_i32().raw()
+                          << " (ts=" << e.timestamp().raw() << ")" << std::endl;
+            })
+            .build();
 
-    std::cout << "Starting SlotEngine with 1 slot..." << std::endl;
+    auto pipelines = ExecutionGraph::build(graph);
+    std::cout << "Pipelines: " << pipelines.size() << std::endl;
 
-    SlotEngine engine(1_usize);
-    engine.submit(std::move(graph));
+    SlotEngine engine(usize{pipelines.size()});
+    for (auto& p : pipelines) {
+        engine.submit(std::move(p));
+    }
     engine.execute();
 
     std::cout << "Done." << std::endl;

@@ -27,14 +27,16 @@ TEST(PipelineTest, SourceToSink) {
     std::vector<Event<Record>> collected;
     int counter = 0;
 
-    auto graph = DataflowGraphBuilder()
-                     .source([&counter]() -> std::optional<Event<Record>> {
-                         ++counter;
-                         return Event<Record>(make_record(counter), i64(counter));
-                     })
-                     .sink([&collected](Event<Record>& e) { collected.push_back(e); })
-                     .build();
+    auto graph =
+        DataflowGraphBuilder()
+            .source([&counter]() -> std::optional<Event<Record>> {
+                ++counter;
+                return Event<Record>(make_record(counter), u64(static_cast<uint64_t>(counter)));
+            })
+            .sink([&collected](Event<Record>& e) { collected.push_back(e); })
+            .build();
 
+    // TODO: if we change run(3) to run() here, the thread will run forever
     Pipeline pipeline(std::move(graph));
     pipeline.run(3);
 
@@ -52,7 +54,7 @@ TEST(PipelineTest, SourceMapFilterSink) {
         DataflowGraphBuilder()
             .source([&counter]() -> std::optional<Event<Record>> {
                 ++counter;
-                return Event<Record>(make_record(counter), i64(0));
+                return Event<Record>(make_record(counter), u64(0));
             })
             .map([](Event<Record>& e) -> Event<Record> {
                 auto val = make_value_extractor()(e);

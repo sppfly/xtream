@@ -27,16 +27,17 @@ TEST(SlotEngineTest, SingleQuery) {
     std::vector<Event<Record>> collected;
     int counter = 0;
 
-    auto graph = DataflowGraphBuilder()
-                     .source([&counter]() -> std::optional<Event<Record>> {
-                         ++counter;
-                         if (counter > 5) {
-                             return std::nullopt;
-                         }
-                         return Event<Record>(make_record(counter), i64(counter));
-                     })
-                     .sink([&collected](Event<Record>& e) { collected.push_back(e); })
-                     .build();
+    auto graph =
+        DataflowGraphBuilder()
+            .source([&counter]() -> std::optional<Event<Record>> {
+                ++counter;
+                if (counter > 5) {
+                    return std::nullopt;
+                }
+                return Event<Record>(make_record(counter), u64(static_cast<uint64_t>(counter)));
+            })
+            .sink([&collected](Event<Record>& e) { collected.push_back(e); })
+            .build();
 
     SlotEngine engine(1_usize);
     engine.submit(std::move(graph));
@@ -58,7 +59,8 @@ TEST(SlotEngineTest, MultipleQueries) {
                 if (count > 5) {
                     return std::nullopt;
                 }
-                return Event<Record>(make_record(query_id * 100 + count), i64(count));
+                return Event<Record>(make_record(query_id * 100 + count),
+                                     u64(static_cast<uint64_t>(count)));
             })
             .sink([&collected](Event<Record>& e) { collected.push_back(e); })
             .build();
@@ -84,7 +86,8 @@ TEST(SlotEngineTest, CancelExecution) {
     auto graph = DataflowGraphBuilder()
                      .source([&counter]() -> std::optional<Event<Record>> {
                          ++counter;
-                         return Event<Record>(make_record(counter.load()), i64(counter.load()));
+                         return Event<Record>(make_record(counter.load()),
+                                              u64(static_cast<uint64_t>(counter.load())));
                      })
                      .sink([](Event<Record>&) {})
                      .build();

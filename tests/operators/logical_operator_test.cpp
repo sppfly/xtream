@@ -14,7 +14,7 @@ namespace {
 TEST(LogicalOperatorTest, SourceTypeName) {
     auto op = LogicalOperator(OperatorId(u64(1)), "my_source", u64(1),
                               SourceLogicalOperator([]() -> Event<Record> {
-                                  return Event<Record>(Record(nullptr), i64(0));
+                                  return Event<Record>(Record(nullptr), u64(0));
                               }));
     EXPECT_EQ(op.name(), "my_source");
     EXPECT_EQ(op.parallelism(), u64(1));
@@ -31,7 +31,7 @@ TEST(LogicalOperatorTest, SinkTypeName) {
 
 TEST(LogicalOperatorTest, MapTypeName) {
     auto lambda = [](Event<Record>& e) -> Event<Record> {
-        return Event<Record>(e.payload(), i64(e.timestamp().raw() + 1));
+        return Event<Record>(e.payload(), u64(e.timestamp().raw() + 1));
     };
     auto op = LogicalOperator(OperatorId(u64(3)), "mapper", u64(3), MapLogicalOperator(lambda));
     EXPECT_EQ(op.name(), "mapper");
@@ -40,7 +40,7 @@ TEST(LogicalOperatorTest, MapTypeName) {
 }
 
 TEST(LogicalOperatorTest, FilterTypeName) {
-    auto lambda = [](Event<Record>& e) -> bool { return e.timestamp() > i64(0); };
+    auto lambda = [](Event<Record>& e) -> bool { return e.timestamp() > u64(0); };
     auto op = LogicalOperator(OperatorId(u64(4)), "filter", u64(1), FilterLogicalOperator(lambda));
     EXPECT_EQ(op.name(), "filter");
     EXPECT_EQ(op.type_name(), "Filter");
@@ -50,7 +50,7 @@ TEST(LogicalOperatorTest, StoredInVector) {
     std::vector<LogicalOperator> ops;
     ops.emplace_back(OperatorId(u64(1)), "src", u64(1),
                      SourceLogicalOperator(
-                         []() -> Event<Record> { return Event<Record>(Record(nullptr), i64(0)); }));
+                         []() -> Event<Record> { return Event<Record>(Record(nullptr), u64(0)); }));
     ops.emplace_back(OperatorId(u64(2)), "map", u64(2), MapLogicalOperator([](Event<Record>& e) {
                          return Event<Record>(e.payload(), e.timestamp());
                      }));
@@ -66,7 +66,7 @@ TEST(LogicalOperatorTest, StoredInVector) {
 TEST(LogicalOperatorTest, IdRoundTrip) {
     auto id = OperatorId(u64(42));
     auto op = LogicalOperator(id, "myop", u64(1), SourceLogicalOperator([]() -> Event<Record> {
-                                  return Event<Record>(Record(nullptr), i64(0));
+                                  return Event<Record>(Record(nullptr), u64(0));
                               }));
     EXPECT_EQ(op.id(), id);
 }

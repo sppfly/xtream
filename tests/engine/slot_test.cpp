@@ -26,16 +26,17 @@ TEST(SlotTest, SinglePipelineExecution) {
     std::vector<Event<Record>> collected;
     int counter = 0;
 
-    auto graph = DataflowGraphBuilder()
-                     .source([&counter]() -> std::optional<Event<Record>> {
-                         ++counter;
-                         if (counter > 5) {
-                             return std::nullopt;
-                         }
-                         return Event<Record>(make_record(counter), i64(counter));
-                     })
-                     .sink([&collected](Event<Record>& e) { collected.push_back(e); })
-                     .build();
+    auto graph =
+        DataflowGraphBuilder()
+            .source([&counter]() -> std::optional<Event<Record>> {
+                ++counter;
+                if (counter > 5) {
+                    return std::nullopt;
+                }
+                return Event<Record>(make_record(counter), u64(static_cast<uint64_t>(counter)));
+            })
+            .sink([&collected](Event<Record>& e) { collected.push_back(e); })
+            .build();
 
     Pipeline pipeline(std::move(graph));
     Slot slot;
@@ -59,7 +60,8 @@ TEST(SlotTest, StopBeforeCompletion) {
     auto graph = DataflowGraphBuilder()
                      .source([&counter]() -> std::optional<Event<Record>> {
                          ++counter;
-                         return Event<Record>(make_record(counter.load()), i64(counter.load()));
+                         return Event<Record>(make_record(counter.load()),
+                                              u64(static_cast<uint64_t>(counter.load())));
                      })
                      .sink([&collected](Event<Record>& e) { collected.push_back(e); })
                      .build();

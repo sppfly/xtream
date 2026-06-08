@@ -9,6 +9,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include "core/types/window_spec.h"
 #include "graph/dataflow_graph.h"
 #include "graph/stream_edge.h"
 #include "operators/logical/filter_logical_operator.h"
@@ -16,6 +17,7 @@
 #include "operators/logical/map_logical_operator.h"
 #include "operators/logical/sink_logical_operator.h"
 #include "operators/logical/source_logical_operator.h"
+#include "operators/logical/window_logical_operator.h"
 
 namespace xtream {
 
@@ -27,6 +29,25 @@ public:
 
     StreamHandle map(MapLogicalOperator::Func func);
     StreamHandle filter(FilterLogicalOperator::Func func);
+
+    class WindowedStreamHandle {
+    public:
+        WindowedStreamHandle(DataflowGraphBuilder& builder, OperatorId upstream, WindowSpec spec)
+            : builder_(builder), upstream_(upstream), spec_(spec) {}
+
+        StreamHandle reduce(WindowLogicalOperator::Func func);
+        StreamHandle aggregate(WindowLogicalOperator::Func func);
+
+    private:
+        DataflowGraphBuilder& builder_;
+        OperatorId upstream_;
+        WindowSpec spec_;
+    };
+
+    WindowedStreamHandle window(WindowSpec spec) {
+        return WindowedStreamHandle(builder_, id_, spec);
+    }
+
     StreamHandle sink(SinkLogicalOperator::Func func);
 
     DataflowGraph build();
@@ -58,6 +79,7 @@ private:
 
 class DataflowGraphBuilder {
     friend class StreamHandle;
+    friend class StreamHandle::WindowedStreamHandle;
 
 public:
     DataflowGraphBuilder() = default;
@@ -185,6 +207,23 @@ inline StreamHandle StreamHandle::sink(SinkLogicalOperator::Func func) {
     builder_.add_operator(
         LogicalOperator(id, "sink", u64(1), SinkLogicalOperator(std::move(func))));
     builder_.add_edge(id_, id, EdgePartition::Forward);
+    return StreamHandle(builder_, id);
+}
+
+inline StreamHandle StreamHandle::WindowedStreamHandle::reduce(WindowLogicalOperator::Func func) {
+    auto id = builder_.next_id();
+    builder_.add_operator(
+        LogicalOperator(id, "window", u64(1), WindowLogicalOperator(spec_, std::move(func))));
+    builder_.add_edge(upstream_, id, EdgePartition::Forward);
+    return StreamHandle(builder_, id);
+}
+
+inline StreamHandle StreamHandle::WindowedStreamHandle::aggregate(
+    WindowLogicalOperator::Func func) {
+    auto id = builder_.next_id();
+    builder_.add_operator(
+        LogicalOperator(id, "window", u64(1), WindowLogicalOperator(spec_, std::move(func))));
+    builder_.add_edge(upstream_, id, EdgePartition::Forward);
     return StreamHandle(builder_, id);
 }
 

@@ -25,7 +25,7 @@ auto make_record(int v) -> Record {
     return record;
 }
 
-auto make_event(int v, i64 ts = i64(0)) -> Event<Record> {
+auto make_event(int v, u64 ts = u64(0)) -> Event<Record> {
     return Event<Record>(make_record(v), ts);
 }
 

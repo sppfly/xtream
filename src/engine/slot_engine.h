@@ -15,6 +15,7 @@ public:
     explicit SlotEngine(usize slot_count);
 
     void submit(DataflowGraph graph) override;
+    void submit(Pipeline pipeline);
     void execute() override;
     void cancel() override;
 

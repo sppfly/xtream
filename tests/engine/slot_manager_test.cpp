@@ -38,7 +38,8 @@ TEST(SlotManagerTest, AssignAndStartMultipleSlots) {
                 if (count > 5) {
                     return std::nullopt;
                 }
-                return Event<Record>(make_record(slot_id * 100 + count), i64(count));
+                return Event<Record>(make_record(slot_id * 100 + count),
+                                     u64(static_cast<uint64_t>(count)));
             })
             .sink([&collected](Event<Record>& e) { collected.push_back(e); })
             .build();

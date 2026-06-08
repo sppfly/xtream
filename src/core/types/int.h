@@ -4,6 +4,7 @@
 #include <compare>
 #include <concepts>
 #include <cstdint>
+#include <format>
 #include <limits>
 #include <type_traits>
 
@@ -170,3 +171,12 @@ constexpr i64 operator""_i64(unsigned long long v) {
 }
 
 }  // namespace xtream
+
+template <std::integral T>
+struct std::formatter<xtream::StrictInt<T>> {
+    constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+
+    auto format(const xtream::StrictInt<T>& v, std::format_context& ctx) const {
+        return std::format_to(ctx.out(), "{}", v.raw());
+    }
+};

@@ -8,7 +8,7 @@ namespace xtream {
 namespace {
 
 auto noop_source() -> Event<Record> {
-    return Event<Record>(Record(nullptr), i64(0));
+    return Event<Record>(Record(nullptr), u64(0));
 }
 auto noop_sink(Event<Record>&) {}
 

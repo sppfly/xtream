@@ -81,11 +81,11 @@ struct BadSource {
 };
 
 struct GoodSource {
-    auto operator()() -> Event<int> { return Event<int>(42, i64(1000)); }
+    auto operator()() -> Event<int> { return Event<int>(42, u64(1000)); }
 };
 
 TEST(SourceFunctionConcept, SatisfiedByCorrectLambda) {
-    auto lambda = []() -> Event<int> { return Event<int>(1, i64(0)); };
+    auto lambda = []() -> Event<int> { return Event<int>(1, u64(0)); };
     static_assert(SourceFunction<decltype(lambda), int>);
 }
 

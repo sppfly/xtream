@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <memory>
+#include <optional>
 
 #include "engine/compiler.h"
 #include "graph/dataflow_graph.h"
@@ -11,9 +12,13 @@ namespace xtream {
 
 class Pipeline {
 public:
+    Pipeline() = default;
+
     explicit Pipeline(DataflowGraph graph) : graph_(std::move(graph)) {
-        root_ = Compiler::compile(graph_);
+        root_ = Compiler::compile(*graph_);
     }
+
+    explicit Pipeline(std::shared_ptr<PhysicalOperator> root) : root_(std::move(root)) {}
 
     Pipeline(Pipeline&& other) noexcept
         : graph_(std::move(other.graph_)),
@@ -34,7 +39,7 @@ public:
         walk([](PhysicalOperator& op) { op.open(); });
 
         for (size_t i = 0; i < event_count; ++i) {
-            Event<Record> dummy(Record(nullptr), i64(0));
+            Event<Record> dummy(Record(nullptr), 0_u64);
             root_->execute(dummy);
         }
 
@@ -48,7 +53,7 @@ public:
         walk([](PhysicalOperator& op) { op.open(); });
 
         while (running_) {
-            Event<Record> dummy(Record(nullptr), i64(0));
+            Event<Record> dummy(Record(nullptr), 0_u64);
             root_->execute(dummy);
             if (root_->is_done()) {
                 break;
@@ -73,7 +78,7 @@ private:
         }
     }
 
-    DataflowGraph graph_;
+    std::optional<DataflowGraph> graph_;
     std::shared_ptr<PhysicalOperator> root_;
     std::atomic<bool> running_{false};
 };

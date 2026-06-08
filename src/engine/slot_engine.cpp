@@ -11,6 +11,10 @@ void SlotEngine::submit(DataflowGraph graph) {
     pipelines_.push_back(std::move(pipeline));
 }
 
+void SlotEngine::submit(Pipeline pipeline) {
+    pipelines_.push_back(std::move(pipeline));
+}
+
 void SlotEngine::execute() {
     running_ = true;
 

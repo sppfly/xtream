@@ -1,6 +1,7 @@
 #pragma once
 
 #include <compare>
+#include <format>
 
 namespace xtream {
 
@@ -84,3 +85,21 @@ constexpr f64 operator""_f64(long double v) {
 }
 
 }  // namespace xtream
+
+template <>
+struct std::formatter<xtream::f32> {
+    constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+
+    auto format(const xtream::f32& v, std::format_context& ctx) const {
+        return std::format_to(ctx.out(), "{}", v.raw());
+    }
+};
+
+template <>
+struct std::formatter<xtream::f64> {
+    constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+
+    auto format(const xtream::f64& v, std::format_context& ctx) const {
+        return std::format_to(ctx.out(), "{}", v.raw());
+    }
+};

@@ -5,6 +5,7 @@
 #include <string_view>
 #include <unordered_map>
 
+#include "core/record.h"
 #include "core/types/types.h"
 
 namespace xtream {
@@ -12,10 +13,10 @@ namespace xtream {
 template <typename T>
 class Event {
 public:
-    Event(T payload, i64 timestamp) : payload_(std::move(payload)), timestamp_(timestamp) {}
+    Event(T payload, u64 timestamp) : payload_(std::move(payload)), timestamp_(timestamp) {}
 
     const T& payload() const { return payload_; }
-    i64 timestamp() const { return timestamp_; }
+    u64 timestamp() const { return timestamp_; }
 
     void set_metadata(std::string_view key, std::string value) {
         metadata_[std::string(key)] = std::move(value);
@@ -31,7 +32,7 @@ public:
 
 private:
     T payload_;
-    i64 timestamp_;
+    u64 timestamp_;
     std::unordered_map<std::string, std::string> metadata_;
 };
 
