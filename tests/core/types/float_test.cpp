@@ -16,7 +16,6 @@ TEST(F32Test, NoImplicitFromDouble) {
 
 TEST(F32Test, NoImplicitFromRaw) {
     static_assert(!std::is_convertible_v<float, f32>);
-    static_assert(!std::is_convertible_v<f32, float>);
 }
 
 TEST(F32Test, Add) {

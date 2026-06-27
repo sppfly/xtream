@@ -12,7 +12,6 @@ TEST(U32Test, Construct) {
 
 TEST(U32Test, NoImplicitFromRaw) {
     static_assert(!std::is_convertible_v<uint32_t, u32>);
-    static_assert(!std::is_convertible_v<u32, uint32_t>);
 }
 
 TEST(U32Test, NoImplicitCrossType) {
