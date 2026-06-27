@@ -26,6 +26,7 @@ add_executable(xtream_tests
     engine/slot_test.cpp
     engine/slot_manager_test.cpp
     engine/slot_engine_test.cpp
+    runtime/event_buffer_test.cpp
 )
 target_link_libraries(xtream_tests PRIVATE xtream_core GTest::gtest GTest::gtest_main)
 
