@@ -12,6 +12,8 @@ public:
 
     [[nodiscard]] constexpr float raw() const { return value_; }
 
+    constexpr operator float() const { return value_; }
+
     constexpr f32 operator+(f32 other) const { return f32(value_ + other.value_); }
     constexpr f32 operator-(f32 other) const { return f32(value_ - other.value_); }
     constexpr f32 operator*(f32 other) const { return f32(value_ * other.value_); }
@@ -47,6 +49,8 @@ public:
     explicit f64(float) = delete;
 
     [[nodiscard]] constexpr double raw() const { return value_; }
+
+    constexpr operator double() const { return value_; }
 
     constexpr f64 operator+(f64 other) const { return f64(value_ + other.value_); }
     constexpr f64 operator-(f64 other) const { return f64(value_ - other.value_); }

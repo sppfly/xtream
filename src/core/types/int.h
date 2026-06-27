@@ -20,7 +20,10 @@ public:
     template <std::integral U>
     explicit StrictInt(StrictInt<U> other) = delete;
 
+    // Deprecated
     [[nodiscard]] constexpr T raw() const { return value_; }
+
+    constexpr operator T() const { return value_; }
 
     template <std::integral U>
     constexpr StrictInt<U> as() const {
