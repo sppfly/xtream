@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <variant>
 
 #include "operators/physical/physical_operator.h"
 
@@ -14,10 +15,18 @@ public:
 
     void setup() override {}
     void open() override {}
-    void execute(Event<Record>& record) override {
-        auto result = func_(record);
-        if (next_) {
-            next_->execute(result);
+    void execute(StreamElement& elem) override {
+        if (auto* event = std::get_if<Event<Record>>(&elem)) {
+            auto result = func_(*event);
+            if (next_) {
+                StreamElement out(result);
+                next_->execute(out);
+            }
+        } else {
+            // Watermark: 透传，用户不感知
+            if (next_) {
+                next_->execute(elem);
+            }
         }
     }
     void close() override {}

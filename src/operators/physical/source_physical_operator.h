@@ -15,10 +15,11 @@ public:
 
     void setup() override {}
     void open() override {}
-    void execute(Event<Record>&) override {
+    void execute(StreamElement&) override {
         auto event = func_();
         if (event && next_) {
-            next_->execute(*event);
+            StreamElement out(*event);
+            next_->execute(out);
         } else {
             done_ = true;
         }

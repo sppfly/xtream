@@ -39,7 +39,7 @@ public:
         walk([](PhysicalOperator& op) { op.open(); });
 
         for (size_t i = 0; i < event_count; ++i) {
-            Event<Record> dummy(Record(nullptr), 0_u64);
+            StreamElement dummy{Event<Record>(Record(nullptr), u64(0))};
             root_->execute(dummy);
         }
 
@@ -53,7 +53,7 @@ public:
         walk([](PhysicalOperator& op) { op.open(); });
 
         while (running_) {
-            Event<Record> dummy(Record(nullptr), 0_u64);
+            StreamElement dummy{Event<Record>(Record(nullptr), u64(0))};
             root_->execute(dummy);
             if (root_->is_done()) {
                 break;

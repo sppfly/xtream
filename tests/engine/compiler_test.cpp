@@ -101,7 +101,7 @@ TEST(CompilerTest, ExecuteCompiledChain) {
 
     source->open();
     for (size_t i = 0; i < data.size(); ++i) {
-        auto dummy = make_event(0);
+        StreamElement dummy{make_event(0)};
         source->execute(dummy);
     }
     source->close();
@@ -130,7 +130,7 @@ TEST(CompilerTest, ExecuteWithFilter) {
 
     source->open();
     for (size_t i = 0; i < data.size(); ++i) {
-        auto dummy = make_event(0);
+        StreamElement dummy{make_event(0)};
         source->execute(dummy);
     }
     source->close();

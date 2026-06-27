@@ -21,14 +21,17 @@ public:
     void setup() override {}
     void open() override {}
 
-    void execute(Event<Record>& record) override {
-        buffer_.push_back(record);
+    void execute(StreamElement& elem) override {
+        if (auto* event = std::get_if<Event<Record>>(&elem)) {
+            buffer_.push_back(*event);
 
-        if (spec_.type == WindowType::Count) {
-            execute_count();
-        } else {
-            execute_time(record);
+            if (spec_.type == WindowType::Count) {
+                execute_count();
+            } else {
+                execute_time(*event);
+            }
         }
+        // Watermark: 触发逻辑留到下一步
     }
 
     void close() override {
@@ -74,7 +77,8 @@ private:
         if (output_channel_) {
             output_channel_->write(std::move(result));
         } else if (next_) {
-            next_->execute(result);
+            StreamElement out(result);
+            next_->execute(out);
         }
 
         if (spec_.type == WindowType::Count) {

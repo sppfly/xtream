@@ -14,10 +14,17 @@ public:
 
     void setup() override {}
     void open() override {}
-    void execute(Event<Record>& record) override {
-        if (pred_(record)) {
+    void execute(StreamElement& elem) override {
+        if (auto* event = std::get_if<Event<Record>>(&elem)) {
+            if (pred_(*event)) {
+                if (next_) {
+                    next_->execute(elem);
+                }
+            }
+        } else {
+            // Watermark: 透传
             if (next_) {
-                next_->execute(record);
+                next_->execute(elem);
             }
         }
     }

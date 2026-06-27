@@ -37,7 +37,8 @@ TEST(MapPhysicalTest, TransformsEvent) {
     map->set_next(sink);
 
     auto event = make_event(u64(42));
-    map->execute(event);
+    StreamElement elem{event};
+    map->execute(elem);
 
     ASSERT_EQ(collected.size(), 1u);
     EXPECT_EQ(make_value_extractor()(collected[0]), u64(43));
@@ -55,7 +56,8 @@ TEST(MapPhysicalTest, MultipleEvents) {
 
     for (u64 i : {u64(1), u64(2), u64(3)}) {
         auto event = make_event(i);
-        map->execute(event);
+        StreamElement elem{event};
+        map->execute(elem);
     }
 
     ASSERT_EQ(collected.size(), 3u);
@@ -74,8 +76,10 @@ TEST(FilterPhysicalTest, PassesMatchingEvents) {
 
     auto e1 = make_event(u64(5));
     auto e2 = make_event(u64(15));
-    filter->execute(e1);
-    filter->execute(e2);
+    StreamElement s1{e1};
+    StreamElement s2{e2};
+    filter->execute(s1);
+    filter->execute(s2);
 
     ASSERT_EQ(collected.size(), 1u);
     EXPECT_EQ(make_value_extractor()(collected[0]), u64(15));
@@ -91,7 +95,8 @@ TEST(FilterPhysicalTest, DropsAllBelowThreshold) {
 
     for (u64 i : {u64(1), u64(3), u64(5), u64(7)}) {
         auto event = make_event(i);
-        filter->execute(event);
+        StreamElement elem{event};
+        filter->execute(elem);
     }
 
     EXPECT_TRUE(collected.empty());
@@ -111,7 +116,7 @@ TEST(SourcePhysicalTest, EmitsEventsFromFunction) {
 
     source->open();
     for (size_t i = 0; i < data.size(); ++i) {
-        auto dummy = make_event(u64(0));
+        StreamElement dummy{make_event(u64(0))};
         source->execute(dummy);
     }
     source->close();
@@ -135,7 +140,7 @@ TEST(ChainTest, SourceToSink) {
 
     source->open();
     for (size_t i = 0; i < data.size(); ++i) {
-        auto dummy = make_event(u64(0));
+        StreamElement dummy{make_event(u64(0))};
         source->execute(dummy);
     }
     source->close();
@@ -167,7 +172,7 @@ TEST(ChainTest, SourceMapFilterSink) {
 
     source->open();
     for (size_t i = 0; i < data.size(); ++i) {
-        auto dummy = make_event(u64(0));
+        StreamElement dummy{make_event(u64(0))};
         source->execute(dummy);
     }
     source->close();
@@ -183,7 +188,7 @@ TEST(LifecycleTest, Ordering) {
 
         void setup() override { calls.push_back("setup"); }
         void open() override { calls.push_back("open"); }
-        void execute(Event<Record>&) override { calls.push_back("execute"); }
+        void execute(StreamElement&) override { calls.push_back("execute"); }
         void close() override { calls.push_back("close"); }
         void terminate() override { calls.push_back("terminate"); }
     };
@@ -191,7 +196,7 @@ TEST(LifecycleTest, Ordering) {
     auto op = std::make_shared<CallbackOperator>();
     op->setup();
     op->open();
-    auto event = make_event(u64(0));
+    StreamElement event{make_event(u64(0))};
     op->execute(event);
     op->execute(event);
     op->close();

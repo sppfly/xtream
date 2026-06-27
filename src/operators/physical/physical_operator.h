@@ -4,6 +4,7 @@
 
 #include "core/event.h"
 #include "core/record.h"
+#include "runtime/stream_element.h"
 
 namespace xtream {
 
@@ -13,7 +14,7 @@ public:
 
     virtual void setup() = 0;
     virtual void open() = 0;
-    virtual void execute(Event<Record>& record) = 0;
+    virtual void execute(StreamElement& elem) = 0;
     virtual void close() = 0;
     virtual void terminate() = 0;
     virtual bool is_done() const { return false; }

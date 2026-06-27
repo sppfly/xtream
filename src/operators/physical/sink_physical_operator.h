@@ -14,7 +14,12 @@ public:
 
     void setup() override {}
     void open() override {}
-    void execute(Event<Record>& record) override { func_(record); }
+    void execute(StreamElement& elem) override {
+        if (auto* event = std::get_if<Event<Record>>(&elem)) {
+            func_(*event);
+        }
+        // Watermark: 忽略
+    }
     void close() override {}
     void terminate() override {}
 
