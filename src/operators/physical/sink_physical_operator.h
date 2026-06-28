@@ -18,7 +18,7 @@ public:
         if (auto* event = std::get_if<Event<Record>>(&elem)) {
             func_(*event);
         }
-        // Watermark: 忽略
+        // Watermark: ignored
     }
     void close() override {}
     void terminate() override {}

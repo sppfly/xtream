@@ -31,7 +31,7 @@ public:
                 execute_time(*event);
             }
         }
-        // Watermark: 触发逻辑留到下一步
+        // Watermark: trigger logic deferred to next step
     }
 
     void close() override {

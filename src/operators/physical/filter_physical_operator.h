@@ -22,7 +22,7 @@ public:
                 }
             }
         } else {
-            // Watermark: 透传
+            // Watermark: pass through
             if (next_) {
                 next_->execute(elem);
             }

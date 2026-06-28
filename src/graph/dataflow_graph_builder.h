@@ -49,6 +49,8 @@ public:
         return WindowedStreamHandle(builder_, id_, spec);
     }
 
+    StreamHandle with_watermark(u64 allowed_lateness);
+
     StreamHandle sink(SinkLogicalOperator::Func func);
 
     DataflowGraph build();
@@ -139,6 +141,17 @@ private:
     void add_edge(OperatorId from, OperatorId to, EdgePartition partition) {
         auto id = EdgeId(u64(edge_counter_++));
         edges_.emplace_back(id, from, to, partition);
+    }
+
+    void set_source_lateness(OperatorId id, u64 lateness) {
+        for (auto& node : nodes_) {
+            if (node.id != id) continue;
+            auto* src = std::get_if<SourceLogicalOperator>(&node.op);
+            assert(src && "with_watermark can only be applied to a source");
+            src->set_allowed_lateness(lateness);
+            return;
+        }
+        assert(false && "with_watermark: source id not found");
     }
 
     ValidationResult check_no_cycles() const {
@@ -250,6 +263,11 @@ inline StreamHandle StreamHandle::WindowedStreamHandle::aggregate(
 
 inline DataflowGraph StreamHandle::build() {
     return builder_.build();
+}
+
+inline StreamHandle StreamHandle::with_watermark(u64 allowed_lateness) {
+    builder_.set_source_lateness(id_, allowed_lateness);
+    return *this;
 }
 
 }  // namespace xtream

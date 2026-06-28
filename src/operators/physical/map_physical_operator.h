@@ -23,7 +23,7 @@ public:
                 next_->execute(out);
             }
         } else {
-            // Watermark: 透传，用户不感知
+            // Watermark: pass through, user-transparent
             if (next_) {
                 next_->execute(elem);
             }
