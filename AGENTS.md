@@ -110,6 +110,20 @@ All placement algorithms must implement a unified placement interface.
 - Do NOT add comments unless asked.
 - **Do NOT modify code unless explicitly asked.** When proposing changes, describe them first and wait for the user to say "go ahead".
 
+### Development Workflow
+
+Every coding task follows this order. Do NOT skip ahead.
+
+1. **Discuss the approach first.** Talk through the design/options at a high level (what mechanism, which strategy, alternatives considered) until the user agrees on a direction. Do not touch files.
+2. **Discuss implementation details before writing.** Show the concrete plan: which classes to add or change, their public interfaces, and their private members/state. Wait for the user to approve.
+3. **Only then write code.** Still do not start until the user explicitly says to (e.g. "go ahead", "开始写", "先写这个").
+4. **Write tests after the code.** Cover at minimum:
+   - The simplest case that should pass
+   - Cases that should fail / be rejected
+   - Randomized or property-style tests where appropriate
+
+Until the user explicitly authorizes writing, limit yourself to discussion, reading files, and showing planned interfaces.
+
 ### Key Technical Decisions
 
 - **Testing framework**: GoogleTest (via CMake FetchContent)

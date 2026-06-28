@@ -7,6 +7,7 @@
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <variant>
 #include <vector>
 
 #include "core/types/window_spec.h"
@@ -86,18 +87,28 @@ public:
 
     StreamHandle source(SourceLogicalOperator::Func func) {
         auto id = next_id();
-        operators_.emplace_back(id, "source", u64(1), SourceLogicalOperator(std::move(func)));
+        nodes_.push_back(
+            StreamNode{id, "source", u64(1), SourceLogicalOperator(std::move(func))});
         return StreamHandle(*this, id);
     }
 
     DataflowGraph build() const {
         auto result = validate();
         assert(result.is_ok());
-        return DataflowGraph(operators_, edges_);
+        std::vector<LogicalOperator> ops;
+        ops.reserve(nodes_.size());
+        for (const auto& node : nodes_) {
+            ops.push_back(std::visit(
+                [&](const auto& op) -> LogicalOperator {
+                    return LogicalOperator(node.id, node.name, node.parallelism, op);
+                },
+                node.op));
+        }
+        return DataflowGraph(ops, edges_);
     }
 
     ValidationResult validate() const {
-        if (operators_.empty()) {
+        if (nodes_.empty()) {
             return ValidationResult::error("graph has no operators");
         }
         auto cycle_result = check_no_cycles();
@@ -112,9 +123,18 @@ public:
     }
 
 private:
+    struct StreamNode {
+        OperatorId id;
+        std::string name;
+        u64 parallelism;
+        std::variant<SourceLogicalOperator, MapLogicalOperator, FilterLogicalOperator,
+                     SinkLogicalOperator, WindowLogicalOperator>
+            op;
+    };
+
     OperatorId next_id() { return OperatorId(u64(counter_++)); }
 
-    void add_operator(LogicalOperator op) { operators_.push_back(std::move(op)); }
+    void add_node(StreamNode node) { nodes_.push_back(std::move(node)); }
 
     void add_edge(OperatorId from, OperatorId to, EdgePartition partition) {
         auto id = EdgeId(u64(edge_counter_++));
@@ -123,25 +143,25 @@ private:
 
     ValidationResult check_no_cycles() const {
         std::unordered_map<OperatorId, std::vector<OperatorId>> adjacency;
-        for (const auto& op : operators_) {
-            adjacency[op.id()] = {};
+        for (const auto& node : nodes_) {
+            adjacency[node.id] = {};
         }
         for (const auto& edge : edges_) {
             adjacency[edge.source()].push_back(edge.target());
         }
 
         std::unordered_map<OperatorId, int> in_degree;
-        for (const auto& op : operators_) {
-            in_degree[op.id()] = 0;
+        for (const auto& node : nodes_) {
+            in_degree[node.id] = 0;
         }
         for (const auto& edge : edges_) {
             in_degree[edge.target()]++;
         }
 
         std::deque<OperatorId> queue;
-        for (const auto& op : operators_) {
-            if (in_degree[op.id()] == 0) {
-                queue.push_back(op.id());
+        for (const auto& node : nodes_) {
+            if (in_degree[node.id] == 0) {
+                queue.push_back(node.id);
             }
         }
 
@@ -158,7 +178,7 @@ private:
             }
         }
 
-        if (visited != operators_.size()) {
+        if (visited != nodes_.size()) {
             return ValidationResult::error("graph contains a cycle");
         }
         return ValidationResult::ok();
@@ -166,8 +186,8 @@ private:
 
     ValidationResult check_edges() const {
         std::unordered_set<OperatorId> known_ids;
-        for (const auto& op : operators_) {
-            known_ids.insert(op.id());
+        for (const auto& node : nodes_) {
+            known_ids.insert(node.id);
         }
 
         for (const auto& edge : edges_) {
@@ -183,37 +203,38 @@ private:
 
     uint64_t counter_ = 1;
     uint64_t edge_counter_ = 0;
-    std::vector<LogicalOperator> operators_;
+    std::vector<StreamNode> nodes_;
     std::vector<StreamEdge> edges_;
 };
 
 inline StreamHandle StreamHandle::map(MapLogicalOperator::Func func) {
     auto id = builder_.next_id();
-    builder_.add_operator(LogicalOperator(id, "map", u64(1), MapLogicalOperator(std::move(func))));
+    builder_.add_node(
+        DataflowGraphBuilder::StreamNode{id, "map", u64(1), MapLogicalOperator(std::move(func))});
     builder_.add_edge(id_, id, EdgePartition::Forward);
     return StreamHandle(builder_, id);
 }
 
 inline StreamHandle StreamHandle::filter(FilterLogicalOperator::Func func) {
     auto id = builder_.next_id();
-    builder_.add_operator(
-        LogicalOperator(id, "filter", u64(1), FilterLogicalOperator(std::move(func))));
+    builder_.add_node(DataflowGraphBuilder::StreamNode{id, "filter", u64(1),
+                                                       FilterLogicalOperator(std::move(func))});
     builder_.add_edge(id_, id, EdgePartition::Forward);
     return StreamHandle(builder_, id);
 }
 
 inline StreamHandle StreamHandle::sink(SinkLogicalOperator::Func func) {
     auto id = builder_.next_id();
-    builder_.add_operator(
-        LogicalOperator(id, "sink", u64(1), SinkLogicalOperator(std::move(func))));
+    builder_.add_node(
+        DataflowGraphBuilder::StreamNode{id, "sink", u64(1), SinkLogicalOperator(std::move(func))});
     builder_.add_edge(id_, id, EdgePartition::Forward);
     return StreamHandle(builder_, id);
 }
 
 inline StreamHandle StreamHandle::WindowedStreamHandle::reduce(WindowLogicalOperator::Func func) {
     auto id = builder_.next_id();
-    builder_.add_operator(
-        LogicalOperator(id, "window", u64(1), WindowLogicalOperator(spec_, std::move(func))));
+    builder_.add_node(DataflowGraphBuilder::StreamNode{
+        id, "window", u64(1), WindowLogicalOperator(spec_, std::move(func))});
     builder_.add_edge(upstream_, id, EdgePartition::Forward);
     return StreamHandle(builder_, id);
 }
@@ -221,8 +242,8 @@ inline StreamHandle StreamHandle::WindowedStreamHandle::reduce(WindowLogicalOper
 inline StreamHandle StreamHandle::WindowedStreamHandle::aggregate(
     WindowLogicalOperator::Func func) {
     auto id = builder_.next_id();
-    builder_.add_operator(
-        LogicalOperator(id, "window", u64(1), WindowLogicalOperator(spec_, std::move(func))));
+    builder_.add_node(DataflowGraphBuilder::StreamNode{
+        id, "window", u64(1), WindowLogicalOperator(spec_, std::move(func))});
     builder_.add_edge(upstream_, id, EdgePartition::Forward);
     return StreamHandle(builder_, id);
 }

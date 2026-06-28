@@ -19,7 +19,7 @@ public:
     void execute(StreamElement&) override {
         auto event = channel_->read();
         if (event && next_) {
-            StreamElement out(*event);
+            StreamElement out(event.value());
             next_->execute(out);
         } else {
             done_ = true;
