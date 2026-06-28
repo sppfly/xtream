@@ -6,6 +6,7 @@ namespace xtream {
 
 SlotEngine::SlotEngine(usize slot_count) : slot_manager_(slot_count) {}
 
+// TODO: we don't need this method anymore, should remove it later
 void SlotEngine::submit(DataflowGraph graph) {
     Pipeline pipeline(std::move(graph));
     pipelines_.push_back(std::move(pipeline));

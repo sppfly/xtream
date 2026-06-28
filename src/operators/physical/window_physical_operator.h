@@ -77,6 +77,7 @@ private:
         if (output_channel_) {
             output_channel_->write(std::move(result));
         } else if (next_) {
+            // TODO: window operator is not supposed to have a next_
             StreamElement out(result);
             next_->execute(out);
         }

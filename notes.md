@@ -1,3 +1,12 @@
+At now SlotEngine::submit(Graph) is useless, and it maybe wrong because It only compiles the logical node one to one to physical node. Well we should submit pipelines. Keep this in mind we will fix it later.
+
+Question: what is the test case that streaming system have? For example like TPC-H
+
+As far as I know we have LinearRoad. Yahoo Streaming?
+
+
+
+
 Channel, Window is a split line of our engine. At this stage, our engine is functional to some extent.
 It is still at a very early stage tho.
 
