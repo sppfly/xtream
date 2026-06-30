@@ -32,6 +32,20 @@ public:
         return result;
     }
 
+    std::vector<Event<Record>> query(u64 start, u64 end) const {
+        auto lo = std::ranges::lower_bound(events_, start, std::ranges::less{},
+                                           &Event<Record>::timestamp);
+        auto hi =
+            std::ranges::lower_bound(events_, end, std::ranges::less{}, &Event<Record>::timestamp);
+
+        std::vector<Event<Record>> result;
+        result.reserve(static_cast<std::size_t>(hi - lo));
+        for (auto it = lo; it != hi; ++it) {
+            result.push_back(*it);
+        }
+        return result;
+    }
+
     void cleanup_before(u64 timestamp) {
         auto pos = std::ranges::lower_bound(events_, timestamp, std::ranges::less{},
                                             &Event<Record>::timestamp);

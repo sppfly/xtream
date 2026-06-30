@@ -22,6 +22,7 @@ add_executable(xtream_tests
     operators/logical_operator_test.cpp
     operators/physical_operator_test.cpp
     operators/source_watermark_test.cpp
+    operators/time_window_test.cpp
     engine/compiler_test.cpp
     engine/pipeline_test.cpp
     engine/slot_test.cpp

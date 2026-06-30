@@ -8,7 +8,8 @@
 #include "core/event.h"
 #include "core/record.h"
 #include "core/types/window_spec.h"
-#include "operators/physical/window_physical_operator.h"
+#include "operators/physical/count_window_physical_operator.h"
+#include "operators/physical/time_window_physical_operator.h"
 
 namespace xtream {
 
@@ -23,7 +24,10 @@ public:
     const Func& function() const { return func_; }
 
     std::shared_ptr<PhysicalOperator> compile() const {
-        return std::make_shared<WindowPhysicalOperator>(spec_, func_);
+        if (spec_.type == WindowType::Count) {
+            return std::make_shared<CountWindowPhysicalOperator>(spec_, func_);
+        }
+        return std::make_shared<TimeWindowPhysicalOperator>(spec_, func_);
     }
 
 private:
