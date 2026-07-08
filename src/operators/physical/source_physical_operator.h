@@ -21,6 +21,8 @@ public:
           allowed_lateness_(allowed_lateness),
           watermark_interval_(watermark_interval) {}
 
+    std::string_view type_name() const override { return "Source"; }
+
     void setup() override {}
     void open() override {}
     void execute(StreamElement&) override {

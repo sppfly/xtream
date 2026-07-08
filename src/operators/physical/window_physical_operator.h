@@ -15,6 +15,7 @@ public:
     void set_output_channel(std::shared_ptr<InputChannel> channel) {
         output_channel_ = std::move(channel);
     }
+    std::shared_ptr<InputChannel> output_channel() const { return output_channel_; }
 
 protected:
     std::shared_ptr<InputChannel> output_channel_;

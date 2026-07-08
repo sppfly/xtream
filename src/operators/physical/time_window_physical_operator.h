@@ -17,6 +17,8 @@ class TimeWindowPhysicalOperator : public WindowPhysicalOperator {
 public:
     TimeWindowPhysicalOperator(WindowSpec spec, Func func) : spec_(spec), func_(std::move(func)) {}
 
+    std::string_view type_name() const override { return "TimeWindow"; }
+
     void setup() override {}
     void open() override {}
 

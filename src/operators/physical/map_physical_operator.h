@@ -13,6 +13,8 @@ public:
 
     explicit MapPhysicalOperator(Func func) : func_(std::move(func)) {}
 
+    std::string_view type_name() const override { return "Map"; }
+
     void setup() override {}
     void open() override {}
     void execute(StreamElement& elem) override {

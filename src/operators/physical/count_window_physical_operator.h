@@ -15,6 +15,8 @@ class CountWindowPhysicalOperator : public WindowPhysicalOperator {
 public:
     CountWindowPhysicalOperator(WindowSpec spec, Func func) : spec_(spec), func_(std::move(func)) {}
 
+    std::string_view type_name() const override { return "CountWindow"; }
+
     void setup() override {}
     void open() override {}
 

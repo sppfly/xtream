@@ -12,6 +12,8 @@ public:
 
     explicit SinkPhysicalOperator(Func func) : func_(std::move(func)) {}
 
+    std::string_view type_name() const override { return "Sink"; }
+
     void setup() override {}
     void open() override {}
     void execute(StreamElement& elem) override {

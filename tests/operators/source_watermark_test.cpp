@@ -30,6 +30,7 @@ struct CapturingSink : PhysicalOperator {
     std::vector<Event<Record>> events;
     std::vector<Watermark> watermarks;
 
+    std::string_view type_name() const override { return "CapturingSink"; }
     void setup() override {}
     void open() override {}
     void execute(StreamElement& elem) override {
@@ -75,8 +76,7 @@ TEST(SourceWatermarkTest, EmitsWatermarkEqualToMaxTsWhenLatenessZero) {
     size_t idx = 0;
     // allowed_lateness=0, interval=1 → 每条事件都发 watermark = max_ts
     auto source = std::make_shared<SourcePhysicalOperator>(
-        [&data, &idx]() -> std::optional<Event<Record>> { return data[idx++]; },
-        u64(0), usize(1));
+        [&data, &idx]() -> std::optional<Event<Record>> { return data[idx++]; }, u64(0), usize(1));
     source->set_next(sink);
 
     source->open();
@@ -101,8 +101,7 @@ TEST(SourceWatermarkTest, EmitsWatermarkWithLateness) {
     size_t idx = 0;
     // allowed_lateness=50, interval=1 → watermark = max_ts - 50
     auto source = std::make_shared<SourcePhysicalOperator>(
-        [&data, &idx]() -> std::optional<Event<Record>> { return data[idx++]; },
-        u64(50), usize(1));
+        [&data, &idx]() -> std::optional<Event<Record>> { return data[idx++]; }, u64(50), usize(1));
     source->set_next(sink);
 
     source->open();
@@ -126,8 +125,7 @@ TEST(SourceWatermarkTest, WatermarkDoesNotGoBackwards) {
                                        make_event(u64(3), u64(200))};
     size_t idx = 0;
     auto source = std::make_shared<SourcePhysicalOperator>(
-        [&data, &idx]() -> std::optional<Event<Record>> { return data[idx++]; },
-        u64(0), usize(1));
+        [&data, &idx]() -> std::optional<Event<Record>> { return data[idx++]; }, u64(0), usize(1));
     source->set_next(sink);
 
     source->open();
@@ -151,8 +149,7 @@ TEST(SourceWatermarkTest, PeriodicEmissionInterval) {
                                        make_event(u64(5), u64(500))};
     size_t idx = 0;
     auto source = std::make_shared<SourcePhysicalOperator>(
-        [&data, &idx]() -> std::optional<Event<Record>> { return data[idx++]; },
-        u64(0), usize(2));
+        [&data, &idx]() -> std::optional<Event<Record>> { return data[idx++]; }, u64(0), usize(2));
     source->set_next(sink);
 
     source->open();
@@ -177,8 +174,8 @@ TEST(SourceWatermarkTest, CloseFlushesRemainingWatermark) {
                                        make_event(u64(3), u64(300))};
     size_t idx = 0;
     auto source = std::make_shared<SourcePhysicalOperator>(
-        [&data, &idx]() -> std::optional<Event<Record>> { return data[idx++]; },
-        u64(0), usize(100));
+        [&data, &idx]() -> std::optional<Event<Record>> { return data[idx++]; }, u64(0),
+        usize(100));
     source->set_next(sink);
 
     source->open();

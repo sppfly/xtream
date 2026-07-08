@@ -1,8 +1,9 @@
+#include "runtime/event_buffer.h"
+
 #include <gtest/gtest.h>
 
 #include "core/event.h"
 #include "core/record.h"
-#include "runtime/event_buffer.h"
 
 namespace xtream {
 namespace {

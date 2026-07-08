@@ -14,10 +14,12 @@
 #include "graph/dataflow_graph.h"
 #include "graph/stream_edge.h"
 #include "operators/logical/filter_logical_operator.h"
+#include "operators/logical/interval_join_logical_operator.h"
 #include "operators/logical/logical_operator.h"
 #include "operators/logical/map_logical_operator.h"
 #include "operators/logical/sink_logical_operator.h"
 #include "operators/logical/source_logical_operator.h"
+#include "operators/logical/window_join_logical_operator.h"
 #include "operators/logical/window_logical_operator.h"
 
 namespace xtream {
@@ -30,6 +32,15 @@ public:
 
     StreamHandle map(MapLogicalOperator::Func func);
     StreamHandle filter(FilterLogicalOperator::Func func);
+
+    StreamHandle window_join(const StreamHandle& other,
+                             WindowJoinLogicalOperator::KeySelector left_key,
+                             WindowJoinLogicalOperator::KeySelector right_key, WindowSpec spec,
+                             WindowJoinLogicalOperator::JoinFunc func);
+    StreamHandle interval_join(const StreamHandle& other,
+                               IntervalJoinLogicalOperator::KeySelector left_key,
+                               IntervalJoinLogicalOperator::KeySelector right_key, i64 lower_bound,
+                               i64 upper_bound, IntervalJoinLogicalOperator::JoinFunc func);
 
     class WindowedStreamHandle {
     public:
@@ -89,8 +100,7 @@ public:
 
     StreamHandle source(SourceLogicalOperator::Func func) {
         auto id = next_id();
-        nodes_.push_back(
-            StreamNode{id, "source", u64(1), SourceLogicalOperator(std::move(func))});
+        nodes_.push_back(StreamNode{id, "source", u64(1), SourceLogicalOperator(std::move(func))});
         return StreamHandle(*this, id);
     }
 
@@ -130,7 +140,8 @@ private:
         std::string name;
         u64 parallelism;
         std::variant<SourceLogicalOperator, MapLogicalOperator, FilterLogicalOperator,
-                     SinkLogicalOperator, WindowLogicalOperator>
+                     SinkLogicalOperator, WindowLogicalOperator, WindowJoinLogicalOperator,
+                     IntervalJoinLogicalOperator>
             op;
     };
 
@@ -258,6 +269,36 @@ inline StreamHandle StreamHandle::WindowedStreamHandle::aggregate(
     builder_.add_node(DataflowGraphBuilder::StreamNode{
         id, "window", u64(1), WindowLogicalOperator(spec_, std::move(func))});
     builder_.add_edge(upstream_, id, EdgePartition::Forward);
+    return StreamHandle(builder_, id);
+}
+
+inline StreamHandle StreamHandle::window_join(const StreamHandle& other,
+                                              WindowJoinLogicalOperator::KeySelector left_key,
+                                              WindowJoinLogicalOperator::KeySelector right_key,
+                                              WindowSpec spec,
+                                              WindowJoinLogicalOperator::JoinFunc func) {
+    auto id = builder_.next_id();
+    builder_.add_node(DataflowGraphBuilder::StreamNode{
+        id, "window_join", u64(1),
+        WindowJoinLogicalOperator(std::move(left_key), std::move(right_key), spec,
+                                  std::move(func))});
+    builder_.add_edge(id_, id, EdgePartition::Forward);
+    builder_.add_edge(other.id_, id, EdgePartition::Forward);
+    return StreamHandle(builder_, id);
+}
+
+inline StreamHandle StreamHandle::interval_join(const StreamHandle& other,
+                                                IntervalJoinLogicalOperator::KeySelector left_key,
+                                                IntervalJoinLogicalOperator::KeySelector right_key,
+                                                i64 lower_bound, i64 upper_bound,
+                                                IntervalJoinLogicalOperator::JoinFunc func) {
+    auto id = builder_.next_id();
+    builder_.add_node(DataflowGraphBuilder::StreamNode{
+        id, "interval_join", u64(1),
+        IntervalJoinLogicalOperator(std::move(left_key), std::move(right_key), lower_bound,
+                                    upper_bound, std::move(func))});
+    builder_.add_edge(id_, id, EdgePartition::Forward);
+    builder_.add_edge(other.id_, id, EdgePartition::Forward);
     return StreamHandle(builder_, id);
 }
 

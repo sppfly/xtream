@@ -41,6 +41,7 @@ auto extract_value(const Event<Record>& e) -> u64 {
 struct CapturingSink : PhysicalOperator {
     std::vector<Event<Record>> events;
 
+    std::string_view type_name() const override { return "CapturingSink"; }
     void setup() override {}
     void open() override {}
     void execute(StreamElement& elem) override {
@@ -55,8 +56,8 @@ struct CapturingSink : PhysicalOperator {
 TEST(TimeWindowTest, TumblingWindowFiresOnWatermark) {
     auto sink = std::make_shared<CapturingSink>();
     // tumbling: size=5, step=5
-    auto win = std::make_shared<TimeWindowPhysicalOperator>(
-        time_tumbling_window(usize(5)), sum_values);
+    auto win =
+        std::make_shared<TimeWindowPhysicalOperator>(time_tumbling_window(usize(5)), sum_values);
     win->set_next(sink);
 
     win->open();
@@ -90,8 +91,8 @@ TEST(TimeWindowTest, TumblingWindowFiresOnWatermark) {
 TEST(TimeWindowTest, SlidingWindowFiresMultipleOnWatermark) {
     auto sink = std::make_shared<CapturingSink>();
     // sliding: size=5, step=1
-    auto win = std::make_shared<TimeWindowPhysicalOperator>(time_window(usize(5), usize(1)),
-                                                             sum_values);
+    auto win =
+        std::make_shared<TimeWindowPhysicalOperator>(time_window(usize(5), usize(1)), sum_values);
     win->set_next(sink);
 
     win->open();
@@ -129,8 +130,8 @@ TEST(TimeWindowTest, SlidingWindowFiresMultipleOnWatermark) {
 
 TEST(TimeWindowTest, OutOfOrderEventsHandledCorrectly) {
     auto sink = std::make_shared<CapturingSink>();
-    auto win = std::make_shared<TimeWindowPhysicalOperator>(
-        time_tumbling_window(usize(10)), sum_values);
+    auto win =
+        std::make_shared<TimeWindowPhysicalOperator>(time_tumbling_window(usize(10)), sum_values);
     win->set_next(sink);
 
     win->open();
@@ -159,8 +160,8 @@ TEST(TimeWindowTest, OutOfOrderEventsHandledCorrectly) {
 
 TEST(TimeWindowTest, NoFireBeforeWatermark) {
     auto sink = std::make_shared<CapturingSink>();
-    auto win = std::make_shared<TimeWindowPhysicalOperator>(
-        time_tumbling_window(usize(5)), sum_values);
+    auto win =
+        std::make_shared<TimeWindowPhysicalOperator>(time_tumbling_window(usize(5)), sum_values);
     win->set_next(sink);
 
     win->open();
@@ -175,8 +176,8 @@ TEST(TimeWindowTest, NoFireBeforeWatermark) {
 
 TEST(TimeWindowTest, CloseFlushesRemainingWindows) {
     auto sink = std::make_shared<CapturingSink>();
-    auto win = std::make_shared<TimeWindowPhysicalOperator>(
-        time_tumbling_window(usize(5)), sum_values);
+    auto win =
+        std::make_shared<TimeWindowPhysicalOperator>(time_tumbling_window(usize(5)), sum_values);
     win->set_next(sink);
 
     win->open();
@@ -193,8 +194,8 @@ TEST(TimeWindowTest, CloseFlushesRemainingWindows) {
 
 TEST(TimeWindowTest, EmptyWindowProducesEmptyResult) {
     auto sink = std::make_shared<CapturingSink>();
-    auto win = std::make_shared<TimeWindowPhysicalOperator>(
-        time_tumbling_window(usize(5)), sum_values);
+    auto win =
+        std::make_shared<TimeWindowPhysicalOperator>(time_tumbling_window(usize(5)), sum_values);
     win->set_next(sink);
 
     win->open();
@@ -208,8 +209,8 @@ TEST(TimeWindowTest, EmptyWindowProducesEmptyResult) {
 
 TEST(TimeWindowTest, WatermarkDoesNotFireFutureWindows) {
     auto sink = std::make_shared<CapturingSink>();
-    auto win = std::make_shared<TimeWindowPhysicalOperator>(
-        time_tumbling_window(usize(5)), sum_values);
+    auto win =
+        std::make_shared<TimeWindowPhysicalOperator>(time_tumbling_window(usize(5)), sum_values);
     win->set_next(sink);
 
     win->open();
@@ -232,8 +233,8 @@ TEST(TimeWindowTest, FirstEventAtNonZeroTimestamp) {
     //   [0,4): event at 3 → 1
     //   [0,5): event at 3 → 1
     auto sink = std::make_shared<CapturingSink>();
-    auto win = std::make_shared<TimeWindowPhysicalOperator>(time_window(usize(5), usize(1)),
-                                                             sum_values);
+    auto win =
+        std::make_shared<TimeWindowPhysicalOperator>(time_window(usize(5), usize(1)), sum_values);
     win->set_next(sink);
 
     win->open();

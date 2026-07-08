@@ -2,6 +2,8 @@
 
 #include <cassert>
 #include <deque>
+#include <sstream>
+#include <string>
 #include <string_view>
 #include <unordered_map>
 #include <vector>
@@ -107,6 +109,52 @@ public:
         return count;
     }
 
+    std::string to_graphviz() const {
+        std::ostringstream out;
+        out << "digraph DataflowGraph {\n";
+        out << "  rankdir=LR;\n";
+        out << "  node [shape=box, fontname=\"Helvetica\"];\n";
+        out << "  edge [fontname=\"Helvetica\"];\n";
+        for (const auto& op : operators_) {
+            out << "  op" << op.id().raw() << " [label=\"" << op.name() << "\\n"
+                << "(" << op.type_name() << ", p=" << op.parallelism().raw() << ")\"];";
+            out << "\n";
+        }
+        for (const auto& e : edges_) {
+            out << "  op" << e.source().raw() << " -> op" << e.target().raw() << " [label=\""
+                << partition_name(e.partition()) << "\"];\n";
+        }
+        out << "}\n";
+        return out.str();
+    }
+
+    std::string to_json() const {
+        std::ostringstream out;
+        out << "{\n";
+        out << "  \"operators\": [\n";
+        for (size_t i = 0; i < operators_.size(); ++i) {
+            const auto& op = operators_[i];
+            out << "    {\"id\": " << op.id().raw() << ", \"name\": \"" << op.name() << "\""
+                << ", \"type\": \"" << op.type_name() << "\""
+                << ", \"parallelism\": " << op.parallelism().raw() << "}";
+            if (i + 1 < operators_.size()) out << ",";
+            out << "\n";
+        }
+        out << "  ],\n";
+        out << "  \"edges\": [\n";
+        for (size_t i = 0; i < edges_.size(); ++i) {
+            const auto& e = edges_[i];
+            out << "    {\"id\": " << e.id().raw() << ", \"source\": " << e.source().raw()
+                << ", \"target\": " << e.target().raw() << ", \"partition\": \""
+                << partition_name(e.partition()) << "\"}";
+            if (i + 1 < edges_.size()) out << ",";
+            out << "\n";
+        }
+        out << "  ]\n";
+        out << "}\n";
+        return out.str();
+    }
+
     std::vector<OperatorId> topological_order() const {
         std::unordered_map<OperatorId, std::vector<OperatorId>> adjacency;
         for (const auto& op : operators_) {
@@ -148,6 +196,18 @@ public:
     }
 
 private:
+    static std::string_view partition_name(EdgePartition p) {
+        switch (p) {
+            case EdgePartition::Forward:
+                return "forward";
+            case EdgePartition::Keyed:
+                return "keyed";
+            case EdgePartition::Broadcast:
+                return "broadcast";
+        }
+        return "unknown";
+    }
+
     std::vector<LogicalOperator> operators_;
     std::vector<StreamEdge> edges_;
 };

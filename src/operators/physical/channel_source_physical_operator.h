@@ -13,6 +13,9 @@ public:
     explicit ChannelSourcePhysicalOperator(std::shared_ptr<InputChannel> channel)
         : channel_(std::move(channel)) {}
 
+    std::string_view type_name() const override { return "ChannelSource"; }
+    std::shared_ptr<InputChannel> channel() const { return channel_; }
+
     void setup() override {}
     void open() override {}
 

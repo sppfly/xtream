@@ -186,6 +186,7 @@ TEST(LifecycleTest, Ordering) {
     struct CallbackOperator : PhysicalOperator {
         std::vector<std::string> calls;
 
+        std::string_view type_name() const override { return "Callback"; }
         void setup() override { calls.push_back("setup"); }
         void open() override { calls.push_back("open"); }
         void execute(StreamElement&) override { calls.push_back("execute"); }

@@ -12,6 +12,8 @@ public:
 
     explicit FilterPhysicalOperator(Pred pred) : pred_(std::move(pred)) {}
 
+    std::string_view type_name() const override { return "Filter"; }
+
     void setup() override {}
     void open() override {}
     void execute(StreamElement& elem) override {

@@ -17,14 +17,17 @@ add_executable(xtream_tests
     core/record_test.cpp
     core/id_test.cpp
     graph/dataflow_graph_test.cpp
+    graph/graph_print_test.cpp
     util/log/logger_test.cpp
     functions/function_concepts_test.cpp
     operators/logical_operator_test.cpp
     operators/physical_operator_test.cpp
     operators/source_watermark_test.cpp
     operators/time_window_test.cpp
+    operators/join_fluent_api_test.cpp
     engine/compiler_test.cpp
     engine/pipeline_test.cpp
+    engine/execution_graph_print_test.cpp
     engine/slot_test.cpp
     engine/slot_manager_test.cpp
     engine/slot_engine_test.cpp
